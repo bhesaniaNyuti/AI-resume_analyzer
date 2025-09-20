@@ -14,6 +14,7 @@ import WhyChoose from './components/WhyChoose';
 import SuccessStories from './components/SuccessStories';
 import JobSeekerDashboard from './components/jobseeker/JobSeekerDashboard';
 import JobDetails from './components/jobseeker/JobDetails';
+import ResumeTest from './pages/ResumeTest';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
         <Route path="/add-job" element={<AddJob />} />
         <Route path="/jobseeker-dashboard" element={<JobSeekerDashboard />} />
         <Route path="/job-details/:jobId" element={<JobDetails />} />
+        <Route path="/resume-test" element={<ResumeTest />} />
       </Routes>
     </div>
   );

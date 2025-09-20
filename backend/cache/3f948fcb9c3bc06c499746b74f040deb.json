@@ -1,0 +1,55 @@
+{
+  "success": true,
+  "cached": false,
+  "score": 83,
+  "professionalism_score": {
+    "grammar": 15,
+    "structure": 20,
+    "readability": 12,
+    "keywords": 8,
+    "contact_info": 8,
+    "achievements": 5,
+    "formatting": 6,
+    "action_verbs": 5,
+    "quantification": 3
+  },
+  "analysis_details": {
+    "word_count": 5,
+    "sections_found": 5,
+    "has_email": true,
+    "has_phone": true,
+    "bullet_count": 0,
+    "achievement_count": 0
+  },
+  "issues": [
+    "Add more technical skills",
+    "Improve formatting",
+    "Include quantifiable achievements"
+  ],
+  "sections": {
+    "contact": {
+      "email": "example@email.com",
+      "phone": "123-456-7890"
+    },
+    "summary": "Professional summary",
+    "experience": [
+      "Work experience 1",
+      "Work experience 2"
+    ],
+    "education": [
+      "Education 1"
+    ],
+    "skills": [
+      "Skill 1",
+      "Skill 2",
+      "Skill 3"
+    ],
+    "projects": [],
+    "achievements": []
+  },
+  "download_urls": {
+    "simple_txt": "/uploads/simple-SHREYA-BHAVANI-FlowCV-Resume-20250726 (1).txt"
+  },
+  "updated_resume_url": null,
+  "message": "Resume analyzed successfully!"
+}

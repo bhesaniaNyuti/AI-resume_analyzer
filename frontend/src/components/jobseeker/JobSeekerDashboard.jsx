@@ -13,6 +13,9 @@ const JobSeekerDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [updatedResumeUrl, setUpdatedResumeUrl] = useState('');
+  const [downloadUrls, setDownloadUrls] = useState({});
+  const [sections, setSections] = useState({});
+  const [scoreBreakdown, setScoreBreakdown] = useState({});
   const backendBaseUrl = 'http://127.0.0.1:8000';
   const [issues, setIssues] = useState([]);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
@@ -203,11 +206,15 @@ const JobSeekerDashboard = () => {
         body: formData,
       });
       const data = await res.json();
+      console.log('Resume analysis response:', data); // Debug logging
       if (res.ok) {
         setScore(data.score);
         setIssues(Array.isArray(data.issues) ? data.issues : []);
         setUpdatedResumeUrl(data.updated_resume_url || '');
+        setDownloadUrls(data.download_urls || {});
+        setSections(data.sections || {});
         setHasAnalyzed(true);
+        console.log('Download URLs set:', data.download_urls); // Debug logging
       } else {
         setError(data.error || 'Resume analysis failed');
       }
@@ -331,29 +338,149 @@ const JobSeekerDashboard = () => {
         </button>
         </div>
         {score !== null && (
-          <div className="score-box">
-            Your Resume Score: <b>{score}</b>/100
-          </div>
-        )}
-        {issues.length > 0 && (
-          <div className="score-box" style={{ marginTop: '10px' }}>
-            <div style={{ fontWeight: 'bold' }}>Suggestions:</div>
-            <ul>
-              {issues.map((it, idx) => (
-                <li key={idx}>{it}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {updatedResumeUrl && (
-          <div className="score-box" style={{ marginTop: '10px' }}>
-            <a
-              href={updatedResumeUrl.startsWith('http') ? updatedResumeUrl : `${backendBaseUrl}${updatedResumeUrl}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Download updated resume
-            </a>
+          <div className="resume-analysis-results">
+            <div className="score-display">
+              <div className="score-circle">
+                <span className="score-number">{score}</span>
+                <span className="score-total">/100</span>
+              </div>
+              <div className="score-label">Resume Health Score</div>
+            </div>
+            
+            {/* Debug information */}
+            {process.env.NODE_ENV === 'development' && (
+              <div style={{ background: '#f0f0f0', padding: '10px', margin: '10px 0', borderRadius: '5px' }}>
+                <strong>Debug Info:</strong><br/>
+                Download URLs: {JSON.stringify(downloadUrls)}<br/>
+                Updated Resume URL: {updatedResumeUrl}
+              </div>
+            )}
+
+            {/* Download Section */}
+            <div className="download-section">
+              <h4>Download Enhanced Resume</h4>
+              {Object.keys(downloadUrls).length > 0 ? (
+                <div className="download-buttons">
+                  {downloadUrls.corrected_pdf && (
+                    <a
+                      href={`${backendBaseUrl}${downloadUrls.corrected_pdf}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="download-btn corrected"
+                    >
+                      📄 Corrected PDF
+                    </a>
+                  )}
+                  {downloadUrls.professional_pdf && (
+                    <a
+                      href={`${backendBaseUrl}${downloadUrls.professional_pdf}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="download-btn professional"
+                    >
+                      ✨ Professional PDF
+                    </a>
+                  )}
+                  {downloadUrls.corrected_docx && !downloadUrls.corrected_pdf && (
+                    <a
+                      href={`${backendBaseUrl}${downloadUrls.corrected_docx}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="download-btn corrected"
+                    >
+                      📄 Corrected DOCX
+                    </a>
+                  )}
+                  {downloadUrls.professional_docx && !downloadUrls.professional_pdf && (
+                    <a
+                      href={`${backendBaseUrl}${downloadUrls.professional_docx}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="download-btn professional"
+                    >
+                      ✨ Professional DOCX
+                    </a>
+                  )}
+                  {downloadUrls.simple_txt && (
+                    <a
+                      href={`${backendBaseUrl}${downloadUrls.simple_txt}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="download-btn corrected"
+                    >
+                      📄 Analysis Report (TXT)
+                    </a>
+                  )}
+                </div>
+              ) : updatedResumeUrl ? (
+                <div className="download-buttons">
+                  <a
+                    href={updatedResumeUrl.startsWith('http') ? updatedResumeUrl : `${backendBaseUrl}${updatedResumeUrl}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="download-btn corrected"
+                  >
+                    📄 Download Updated Resume
+                  </a>
+                </div>
+              ) : (
+                <div className="no-downloads">
+                  <p>Resume processing in progress... Please wait a moment and refresh.</p>
+                </div>
+              )}
+            </div>
+
+            {Object.keys(sections).length > 0 && (
+              <div className="sections-preview">
+                <h4>Resume Sections Detected</h4>
+                <div className="sections-grid">
+                  {sections.contact && Object.keys(sections.contact).length > 0 && (
+                    <div className="section-item">
+                      <span className="section-icon">📧</span>
+                      <span className="section-name">Contact Info</span>
+                    </div>
+                  )}
+                  {sections.summary && (
+                    <div className="section-item">
+                      <span className="section-icon">📝</span>
+                      <span className="section-name">Summary</span>
+                    </div>
+                  )}
+                  {sections.experience && sections.experience.length > 0 && (
+                    <div className="section-item">
+                      <span className="section-icon">💼</span>
+                      <span className="section-name">Experience ({sections.experience.length})</span>
+                    </div>
+                  )}
+                  {sections.education && sections.education.length > 0 && (
+                    <div className="section-item">
+                      <span className="section-icon">🎓</span>
+                      <span className="section-name">Education ({sections.education.length})</span>
+                    </div>
+                  )}
+                  {sections.skills && sections.skills.length > 0 && (
+                    <div className="section-item">
+                      <span className="section-icon">🛠️</span>
+                      <span className="section-name">Skills ({sections.skills.length})</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {issues.length > 0 && (
+              <div className="suggestions-section">
+                <h4>Improvement Suggestions</h4>
+                <div className="suggestions-list">
+                  {issues.map((issue, idx) => (
+                    <div key={idx} className="suggestion-item">
+                      <span className="suggestion-icon">💡</span>
+                      <span className="suggestion-text">{issue}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
         {error && <div className="error">{error}</div>}

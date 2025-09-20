@@ -1,0 +1,14 @@
+Resume Analysis Results for SHREYA-BHAVANI-FlowCV-Resume-20250726 (1).pdf
+Score: 83/100
+
+Issues Found:
+- Add more technical skills
+- Improve formatting
+- Include quantifiable achievements
+
+Sections Detected:
+- contact: Present
+- summary: Present
+- experience: 2
+- education: 1
+- skills: 3
