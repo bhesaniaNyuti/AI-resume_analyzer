@@ -1,0 +1,102 @@
+.nsfc-section {
+  margin: 2.5rem 0;
+  padding: 2.5rem 2rem;
+}
+
+.nsfc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.nsfc-header h2 {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #1a2040;
+}
+
+.nsfc-controls {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.nsfc-arrow {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: #ffffffcc;
+  box-shadow: 0 8px 32px rgba(108, 99, 255, 0.18);
+  color: #6c63ff;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.nsfc-viewport {
+  position: relative;
+  overflow: hidden;
+}
+
+.nsfc-track {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-bottom: 0.5rem;
+}
+
+.nsfc-track::-webkit-scrollbar {
+  height: 8px;
+}
+.nsfc-track::-webkit-scrollbar-thumb {
+  background: #cfd3ff;
+  border-radius: 999px;
+}
+
+.nsfc-card {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 1.5rem;
+  box-shadow: 0 12px 36px rgba(0, 153, 230, 0.12);
+  min-width: 240px;
+  max-width: 260px;
+  padding: 1rem 1rem 1.2rem 1rem;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.nsfc-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 18px 48px rgba(0, 153, 230, 0.22);
+}
+
+.nsfc-logo-wrap {
+  background: linear-gradient(180deg, #f6f8ff 0%, #eef1ff 100%);
+  border-radius: 1.2rem;
+  display: grid;
+  place-items: center;
+  height: 140px;
+  margin-bottom: 0.8rem;
+}
+
+.nsfc-logo-wrap img {
+  max-width: 80%;
+  max-height: 70%;
+  object-fit: contain;
+}
+
+.nsfc-name {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #5a56ff;
+}
+
+@media (max-width: 900px) {
+  .nsfc-section {
+    padding: 1.5rem 1rem;
+  }
+}
+
+

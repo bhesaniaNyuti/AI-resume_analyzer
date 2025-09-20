@@ -1,0 +1,102 @@
+.nspc-section {
+  margin: 2.5rem 0;
+  padding: 2.5rem 2rem;
+  background: linear-gradient(135deg, #e6f0ff 0%, #f7f8fa 100%);
+}
+
+.nspc-title {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #1a2040;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.nspc-cards-container {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.nspc-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  min-width: 300px;
+  max-width: 350px;
+  box-shadow: 0 8px 32px rgba(0, 153, 230, 0.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.nspc-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 48px rgba(0, 153, 230, 0.25);
+}
+
+.nspc-card-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  padding: 0.8rem 1.5rem;
+  border-radius: 1rem;
+  color: white;
+}
+
+/* Business card - Blue theme matching hero */
+.nspc-card:nth-child(1) .nspc-card-title {
+  background: linear-gradient(135deg, #0099e6 0%, #6c63ff 100%);
+}
+
+/* Tech card - Purple theme matching hero */
+.nspc-card:nth-child(2) .nspc-card-title {
+  background: linear-gradient(135deg, #6c63ff 0%, #4a3aff 100%);
+}
+
+/* Creative card - Cyan theme matching hero */
+.nspc-card:nth-child(3) .nspc-card-title {
+  background: linear-gradient(135deg, #00ffe7 0%, #0099e6 100%);
+}
+
+.nspc-categories-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  justify-content: center;
+}
+
+.nspc-category-tag {
+  background: rgba(108, 99, 255, 0.1);
+  color: #6c63ff;
+  padding: 0.6rem 1rem;
+  border-radius: 2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid rgba(108, 99, 255, 0.2);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.nspc-category-tag:hover {
+  background: rgba(108, 99, 255, 0.2);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.2);
+}
+
+@media (max-width: 900px) {
+  .nspc-section {
+    padding: 1.5rem 1rem;
+  }
+  
+  .nspc-cards-container {
+    gap: 1.5rem;
+  }
+  
+  .nspc-card {
+    min-width: 280px;
+    padding: 1.5rem;
+  }
+}

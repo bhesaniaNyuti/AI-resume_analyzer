@@ -1,0 +1,116 @@
+.nsf-header {
+  width: 100%;
+  background: #fff;
+  box-shadow: 0 4px 24px 0 rgba(44, 62, 80, 0.07);
+  border-radius: 0 0 2rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 0.5rem 0;
+}
+.nsf-header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 2.5rem;
+}
+.nsf-logo-group {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  padding: 0.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.nsf-logo-group:hover {
+  transform: scale(1.02);
+  opacity: 0.9;
+}
+
+.nsf-logo-group:active {
+  transform: scale(0.98);
+}
+.nsf-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #8f7cff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nsf-brand {
+  font-family: 'Poppins', 'Inter', Arial, sans-serif;
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #0099e6;
+  letter-spacing: 0.5px;
+}
+.nsf-nav {
+  display: flex;
+  gap: 2.2rem;
+  margin-left: 2.5rem;
+}
+.nsf-nav a {
+  text-decoration: none;
+  color: #23272f;
+  font-size: 1.13rem;
+  font-weight: 500;
+  transition: color 0.18s;
+  padding: 0.2rem 0.1rem;
+}
+.nsf-nav a:hover {
+  color: #6C63FF;
+}
+.nsf-actions {
+  display: flex;
+  gap: 1.1rem;
+  margin-left: 2.5rem;
+}
+.nsf-login, .nsf-register {
+  font-family: 'Poppins', 'Inter', Arial, sans-serif;
+  font-size: 1.08rem;
+  font-weight: 700;
+  border: none;
+  outline: none;
+  border-radius: 2rem;
+  padding: 0.55rem 1.6rem;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+}
+.nsf-login {
+  background: #fff;
+  color: #6C63FF;
+  border: 2px solid #6C63FF;
+  box-shadow: 0 2px 8px 0 rgba(108,99,255,0.07);
+}
+.nsf-login:hover {
+  background: #f3f0ff;
+  color: #0099e6;
+  border-color: #0099e6;
+}
+.nsf-register {
+  background: linear-gradient(90deg, #0099e6 0%, #6C63FF 100%);
+  color: #fff;
+  box-shadow: 0 2px 12px 0 rgba(108,99,255,0.13);
+}
+.nsf-register:hover {
+  background: linear-gradient(90deg, #6C63FF 0%, #0099e6 100%);
+  color: #fff;
+}
+@media (max-width: 900px) {
+  .nsf-header-inner {
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.5rem 1rem;
+  }
+  .nsf-nav, .nsf-actions {
+    margin-left: 0;
+  }
+} 
