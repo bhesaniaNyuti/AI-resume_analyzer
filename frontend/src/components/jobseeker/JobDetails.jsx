@@ -13,6 +13,7 @@ const JobDetails = () => {
   const [error, setError] = useState('');
   const [applied, setApplied] = useState(false);
   const [applying, setApplying] = useState(false);
+  const [applyNotice, setApplyNotice] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -25,6 +26,21 @@ const JobDetails = () => {
       fetchJobDetails();
     }
   }, [jobId, location.state]);
+
+  // Check if already applied for this job
+  useEffect(() => {
+    try {
+      const existing = JSON.parse(localStorage.getItem('appliedJobs') || '[]');
+      if (existing.some(j => j.id === jobId || j._id === jobId)) {
+        setApplied(true);
+        setApplyNotice('You have already applied for this job post.');
+      } else {
+        setApplyNotice('');
+      }
+    } catch (_) {
+      // ignore parsing errors
+    }
+  }, [jobId]);
 
   const fetchJobDetails = async () => {
     try {
@@ -43,6 +59,11 @@ const JobDetails = () => {
   };
 
   const handleApply = () => {
+    if (applied) {
+      setApplyNotice('You have already applied for this job post.');
+      return;
+    }
+    setApplyNotice('');
     setIsModalOpen(true);
   };
 
@@ -67,6 +88,19 @@ const JobDetails = () => {
 
       if (response.ok) {
         setApplied(true);
+        // Persist minimal application record locally to prevent re-applying
+        const existing = JSON.parse(localStorage.getItem('appliedJobs') || '[]');
+        if (!existing.some(j => j.id === jobId || j._id === jobId)) {
+          existing.push({
+            id: jobId,
+            title: job?.title,
+            company: job?.company,
+            status: 'Pending',
+            createdAt: new Date().toISOString(),
+          });
+          localStorage.setItem('appliedJobs', JSON.stringify(existing));
+        }
+        setApplyNotice('Application submitted successfully!');
         alert('Application submitted successfully!');
         setIsModalOpen(false);
       } else {
@@ -240,10 +274,8 @@ const JobDetails = () => {
           >
             {applied ? 'Applied ✓' : 'Apply Now'}
           </button>
-          {applied && (
-            <p className="applied-message">
-              Your application has been submitted successfully!
-            </p>
+          {applyNotice && (
+            <p className={`applied-message`}>{applyNotice}</p>
           )}
         </div>
       </div>

@@ -12,6 +12,7 @@ export default function Header() {
   
   const isRecruiterDashboard = location.pathname === '/recruiter-dashboard';
   const isJobSeekerDashboard = location.pathname === '/jobseeker-dashboard';
+  const isProfile = location.pathname.startsWith('/profile') || location.pathname.startsWith('/recruiter-profile') || location.pathname.startsWith('/jobseeker-profile');
   const isLoggedIn = isRecruiterDashboard || isJobSeekerDashboard;
 
   // Get user data from localStorage based on current route
@@ -38,14 +39,7 @@ export default function Header() {
           <img src={NSLogo} alt="NexSkill Logo" className="nsf-logo" />
           <span className="nsf-brand">NexSkill</span>
         </Link>
-        {!isLoggedIn && (
-          <nav className="nsf-nav">
-            <a href="#how-it-works">How It Works</a>
-            <a href="#resume-check">Resume Health Check</a>
-            <a href="#why-nexskill">Why Choose NexSkill?</a>
-            <a href="#success-stories">Success Stories</a>
-          </nav>
-        )}
+        {/* Navigation removed per request; keep only auth actions */}
         <div className="nsf-actions">
           {isLoggedIn && user ? (
             <div style={{ position: 'relative' }}>
@@ -59,7 +53,22 @@ export default function Header() {
                 ) : (
                   <FaUserCircle size={38} color="#8f7cff" />
                 )}
-                <div style={{ textAlign: 'right' }}>
+                <div style={{ textAlign: 'right' }} onClick={(e) => { 
+                  e.stopPropagation(); 
+                  try {
+                    const r = localStorage.getItem('recruiterData');
+                    const s = localStorage.getItem('jobSeekerData');
+                    if (r) {
+                      window.location.href = '/recruiter-profile';
+                    } else if (s) {
+                      window.location.href = '/jobseeker-profile';
+                    } else {
+                      window.location.href = '/profile';
+                    }
+                  } catch (_) {
+                    window.location.href = '/profile';
+                  }
+                }}>
                   <div style={{ fontWeight: 700, fontSize: 16 }}>{user.name}</div>
                   <div style={{ color: '#5a6473', fontSize: 13 }}>{user.email}</div>
                 </div>
@@ -109,8 +118,12 @@ export default function Header() {
             </div>
           ) : (
             <>
-              <Link to="/login" className="nsf-login">Login</Link>
-              <Link to="/register" className="nsf-register">Register</Link>
+              {!isProfile && (
+                <>
+                  <Link to="/login" className="nsf-login">Login</Link>
+                  <Link to="/register" className="nsf-register">Register</Link>
+                </>
+              )}
             </>
           )}
         </div>

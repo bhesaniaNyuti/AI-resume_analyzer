@@ -1,0 +1,57 @@
+{
+  "success": true,
+  "cached": false,
+  "score": 75,
+  "professionalism_score": {
+    "grammar": 17,
+    "structure": 23,
+    "readability": 10,
+    "keywords": 13,
+    "contact_info": 10,
+    "achievements": 4,
+    "formatting": 8,
+    "action_verbs": 5,
+    "quantification": 2
+  },
+  "analysis_details": {
+    "word_count": 5,
+    "sections_found": 5,
+    "has_email": true,
+    "has_phone": true,
+    "bullet_count": 0,
+    "achievement_count": 0
+  },
+  "issues": [
+    "Add more technical skills",
+    "Improve formatting",
+    "Include quantifiable achievements"
+  ],
+  "sections": {
+    "contact": {
+      "email": "example@email.com",
+      "phone": "123-456-7890"
+    },
+    "summary": "Professional summary",
+    "experience": [
+      "Work experience 1",
+      "Work experience 2"
+    ],
+    "education": [
+      "Education 1"
+    ],
+    "skills": [
+      "Skill 1",
+      "Skill 2",
+      "Skill 3"
+    ],
+    "projects": [],
+    "achievements": []
+  },
+  "download_urls": {
+    "corrected_html": "/uploads/resume-SHREYA-BHAVANI_updated 2 projects.html",
+    "corrected_pdf": "/uploads/resume-SHREYA-BHAVANI_updated 2 projects.html",
+    "professional_pdf": "/uploads/resume-SHREYA-BHAVANI_updated 2 projects.html"
+  },
+  "updated_resume_url": "/uploads/resume-SHREYA-BHAVANI_updated 2 projects.html",
+  "message": "Resume analyzed successfully!"
+}

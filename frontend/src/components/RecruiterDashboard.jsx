@@ -390,6 +390,7 @@ export default function RecruiterDashboard() {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   style={{ background: '#f3eaff', color: '#8f7cff', border: 'none', borderRadius: 8, padding: '0.5rem 1.2rem', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
+                  onClick={() => navigate(`/edit-job/${job.id}`)}
                 >
                   <FaEdit /> Edit
                 </motion.button>

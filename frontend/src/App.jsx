@@ -9,12 +9,15 @@ import HowItWorks from './components/HowItWorks';
 import Login from './components/Login';
 import RecruiterDashboard from './components/RecruiterDashboard';
 import Register from './components/Register';
-import ResumeHealthCheck from './components/ResumeHealthCheck';
 import WhyChoose from './components/WhyChoose';
 import SuccessStories from './components/SuccessStories';
 import JobSeekerDashboard from './components/jobseeker/JobSeekerDashboard';
 import JobDetails from './components/jobseeker/JobDetails';
 import ResumeTest from './pages/ResumeTest';
+import Profile from './components/Profile';
+import ProfileEdit from './components/ProfileEdit';
+import RecruiterProfileEdit from './components/RecruiterProfileEdit';
+import JobEdit from './components/JobEdit';
 
 function App() {
   return (
@@ -27,7 +30,6 @@ function App() {
             <FeaturedCompanies />
             <PopularCategories />
             <HowItWorks />
-            <ResumeHealthCheck />
             <WhyChoose />
             <SuccessStories />
             {/* Footer */}
@@ -42,7 +44,14 @@ function App() {
         <Route path="/add-job" element={<AddJob />} />
         <Route path="/jobseeker-dashboard" element={<JobSeekerDashboard />} />
         <Route path="/job-details/:jobId" element={<JobDetails />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/jobseeker-profile" element={<Profile />} />
+        <Route path="/recruiter-profile" element={<Profile />} />
         <Route path="/resume-test" element={<ResumeTest />} />
+        <Route path="/profile/edit" element={<ProfileEdit />} />
+        <Route path="/jobseeker-profile/edit" element={<ProfileEdit />} />
+        <Route path="/recruiter-profile/edit" element={<RecruiterProfileEdit />} />
+        <Route path="/edit-job/:jobId" element={<JobEdit />} />
       </Routes>
     </div>
   );

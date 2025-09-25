@@ -1,6 +1,5 @@
 // Hero.jsx
 import { motion } from "framer-motion";
-import { FiBriefcase, FiMapPin, FiSearch } from "react-icons/fi";
 import "./Hero.css";
 
 export default function Hero() {
@@ -75,70 +74,44 @@ export default function Hero() {
           <span className="opacity-90">shaped just for you</span>
         </motion.h1>
 
-        {/* Search Form */}
-        <motion.form
-          className="nsf-hero-search mt-8"
+        {/* Interactive animated showcase (replaces search bar) */}
+        <motion.div
+          className="nsf-hero-badges mt-8"
           variants={itemVariants}
-          onSubmit={(e) => e.preventDefault()}
-          aria-label="Job Search Form"
         >
-          {/* Search input */}
-          <motion.div
-            className="nsf-hero-input group"
-            variants={itemVariants}
-            whileHover={{ scale: 1.05 }}
-          >
-            <FiSearch className="nsf-hero-icon group-hover:scale-110" />
-            <input
-              type="text"
-              placeholder="Search by Skills, Company or Job Title"
-              aria-label="Search by Skills, Company or Job Title"
-            />
-          </motion.div>
+          {[
+            { label: "AI Resume Scan", color: "teal" },
+            { label: "ATS Score", color: "violet" },
+            { label: "Instant Feedback", color: "cyan" },
+            { label: "Smart Suggestions", color: "indigo" },
+          ].map((b, i) => (
+            <motion.div
+              key={b.label}
+              className={`nsf-badge nsf-badge--${b.color}`}
+              drag
+              dragMomentum={false}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.96, rotate: 2 }}
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 3 + i * 0.4, repeat: Infinity, repeatType: "mirror" }}
+            >
+              {b.label}
+            </motion.div>
+          ))}
+        </motion.div>
 
-          {/* Location */}
-          <motion.div
-            className="nsf-hero-input group"
-            variants={itemVariants}
-            whileHover={{ scale: 1.05 }}
-          >
-            <FiMapPin className="nsf-hero-icon group-hover:scale-110" />
-            <input
-              type="text"
-              placeholder="Location"
-              aria-label="Location"
-            />
-          </motion.div>
-
-          {/* Experience */}
-          <motion.div
-            className="nsf-hero-input group"
-            variants={itemVariants}
-            whileHover={{ scale: 1.05 }}
-          >
-            <FiBriefcase className="nsf-hero-icon group-hover:scale-110" />
-            <input
-              type="text"
-              placeholder="Experience"
-              aria-label="Experience"
-            />
-          </motion.div>
-
-          {/* Button */}
-          <motion.button
-            className="nsf-hero-search-btn"
-            variants={itemVariants}
-            whileHover={{
-              scale: 1.1,
-              boxShadow: "0px 6px 20px rgba(0,255,231,0.4)",
-            }}
-            whileTap={{ scale: 0.96 }}
-            type="submit"
-            aria-label="Search Jobs"
-          >
-            Search
-          </motion.button>
-        </motion.form>
+        {/* Floating glow accents for visual motion */}
+        <motion.div
+          className="nsf-hero-glows"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.2, delay: 0.4 }}
+          aria-hidden
+        >
+          <motion.span className="glow glow-a" animate={{ x: [0, 8, 0] }} transition={{ duration: 6, repeat: Infinity, repeatType: "mirror" }} />
+          <motion.span className="glow glow-b" animate={{ y: [0, -8, 0] }} transition={{ duration: 7, repeat: Infinity, repeatType: "mirror" }} />
+          <motion.span className="glow glow-c" animate={{ x: [0, -10, 0] }} transition={{ duration: 8, repeat: Infinity, repeatType: "mirror" }} />
+        </motion.div>
       </motion.div>
     </section>
   );

@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useRef as _unusedRef, useState } from 'react';
 import './FeaturedCompanies.css';
 
 const companies = [
@@ -38,6 +38,10 @@ const companies = [
 
 export default function FeaturedCompanies() {
   const trackRef = useRef(null);
+  const rafRef = useRef(null);
+  const wrapRef = useRef(null);
+  const [offsetPx, setOffsetPx] = useState(0);
+  const marqueeCompanies = [...companies, ...companies];
 
   const scrollByCard = (direction) => {
     const track = trackRef.current;
@@ -47,31 +51,69 @@ export default function FeaturedCompanies() {
     track.scrollBy({ left: direction * amount, behavior: 'smooth' });
   };
 
+  const startAutoScroll = (direction) => {
+    const track = trackRef.current;
+    if (!track) return;
+    const step = () => {
+      track.scrollLeft += direction * 8; // smooth continuous scroll
+      rafRef.current = requestAnimationFrame(step);
+    };
+    if (!rafRef.current) rafRef.current = requestAnimationFrame(step);
+  };
+
+  const stopAutoScroll = () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+  };
+
   return (
     <section className="nsfc-section" aria-label="Featured Companies">
       <div className="nsfc-header">
         <h2>Featured Companies</h2>
         <div className="nsfc-controls" aria-hidden>
-          <button className="nsfc-arrow" onClick={() => scrollByCard(-1)} aria-label="Previous">
+          <button
+            className="nsfc-manual-btn"
+            aria-label="Slide left"
+            onClick={() => {
+              const card = trackRef.current?.querySelector('.nsfc-card');
+              const amount = card ? card.getBoundingClientRect().width + 24 : 260;
+              setOffsetPx((v) => v + amount);
+            }}
+          >
             ‹
           </button>
-          <button className="nsfc-arrow" onClick={() => scrollByCard(1)} aria-label="Next">
+          <button
+            className="nsfc-manual-btn"
+            aria-label="Slide right"
+            onClick={() => {
+              const card = trackRef.current?.querySelector('.nsfc-card');
+              const amount = card ? card.getBoundingClientRect().width + 24 : 260;
+              setOffsetPx((v) => v - amount);
+            }}
+          >
             ›
           </button>
         </div>
       </div>
 
       <div className="nsfc-viewport">
-        <div className="nsfc-track" ref={trackRef}>
-          {companies.map((c) => (
-            <div key={c.name} className="nsfc-card">
+        <div
+          className="nsfc-marquee-wrap"
+          ref={wrapRef}
+          style={{ transform: `translateX(${offsetPx}px)` }}
+        >
+          <div className="nsfc-track nsfc-marquee" ref={trackRef}>
+          {marqueeCompanies.map((c, idx) => (
+            <div key={`${c.name}-${idx}`} className="nsfc-card">
               <div className="nsfc-logo-wrap">
                 <img src={c.logo} alt={`${c.name} logo`} loading="lazy" />
               </div>
               <div className="nsfc-name">{c.name}</div>
             </div>
           ))}
+          </div>
         </div>
+        
       </div>
     </section>
   );

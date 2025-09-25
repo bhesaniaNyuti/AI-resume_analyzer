@@ -160,10 +160,20 @@ mongoose.connect(process.env.MONGO_URI, {
 // Placeholder JobSeeker model
 const jobSeekerSchema = new mongoose.Schema({
   name: String,
-  email: String,
+  email: { type: String, index: true, unique: false },
   workExp: String,
   password: String,
-});
+  // Extended profile fields
+  phone: String,
+  location: String,
+  education: String,
+  institute: String,
+  gradYear: String,
+  skills: [String],
+  portfolio: String,
+  summary: String,
+  avatarUrl: String,
+}, { timestamps: true });
 const JobSeeker = mongoose.model('User', jobSeekerSchema, 'users');
 
 // Recruiter model
@@ -297,6 +307,56 @@ app.post('/api/login-jobseeker', async (req, res) => {
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Upsert Job Seeker profile details (from Profile Edit)
+app.put('/api/jobseeker/profile', async (req, res) => {
+  try {
+    const {
+      email,
+      name,
+      phone,
+      location,
+      workExp,
+      education,
+      institute,
+      gradYear,
+      skills,
+      portfolio,
+      summary,
+      avatarUrl
+    } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Normalize skills to array
+    const skillsArray = Array.isArray(skills)
+      ? skills
+      : (typeof skills === 'string' ? skills.split(',').map(s => s.trim()).filter(Boolean) : []);
+
+    const update = {
+      ...(name !== undefined && { name }),
+      ...(phone !== undefined && { phone }),
+      ...(location !== undefined && { location }),
+      ...(workExp !== undefined && { workExp }),
+      ...(education !== undefined && { education }),
+      ...(institute !== undefined && { institute }),
+      ...(gradYear !== undefined && { gradYear }),
+      ...(portfolio !== undefined && { portfolio }),
+      ...(summary !== undefined && { summary }),
+      ...(avatarUrl !== undefined && { avatarUrl }),
+      skills: skillsArray,
+    };
+
+    const options = { upsert: true, new: true, setDefaultsOnInsert: true };
+    const updated = await JobSeeker.findOneAndUpdate({ email }, update, options);
+    res.json({ message: 'Profile saved', user: updated });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 
@@ -479,6 +539,24 @@ app.get('/api/jobs/:jobId', async (req, res) => {
   } catch (err) {
     console.error('Fetch job error:', err);
     res.status(500).json({ error: 'Failed to fetch job' });
+  }
+});
+
+// Update a job (recruiter edit)
+app.patch('/api/jobs/:jobId', async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const update = { ...req.body, updatedAt: new Date() };
+    // Normalize skills
+    if (typeof update.requiredSkills === 'string') {
+      update.requiredSkills = update.requiredSkills.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    const job = await Job.findByIdAndUpdate(jobId, update, { new: true });
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    res.json({ message: 'Job updated', job });
+  } catch (err) {
+    console.error('Update job error:', err);
+    res.status(500).json({ error: 'Failed to update job' });
   }
 });
 

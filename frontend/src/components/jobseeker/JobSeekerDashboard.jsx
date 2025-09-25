@@ -16,6 +16,7 @@ const JobSeekerDashboard = () => {
   const [downloadUrls, setDownloadUrls] = useState({});
   const [sections, setSections] = useState({});
   const [scoreBreakdown, setScoreBreakdown] = useState({});
+  const [professionalismScore, setProfessionalismScore] = useState(null);
   const backendBaseUrl = 'http://127.0.0.1:8000';
   const [issues, setIssues] = useState([]);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
@@ -209,6 +210,7 @@ const JobSeekerDashboard = () => {
       console.log('Resume analysis response:', data); // Debug logging
       if (res.ok) {
         setScore(data.score);
+        setProfessionalismScore(data.professionalism_score || null);
         setIssues(Array.isArray(data.issues) ? data.issues : []);
         setUpdatedResumeUrl(data.updated_resume_url || '');
         setDownloadUrls(data.download_urls || {});
@@ -222,6 +224,13 @@ const JobSeekerDashboard = () => {
       setError('Resume analysis failed: ' + err.message);
     }
     setLoading(false);
+  };
+
+  // Helpers for visualization colors similar to homepage widget
+  const getScoreColor = (value) => {
+    if (value >= 80) return '#4CAF50';
+    if (value >= 60) return '#FF9800';
+    return '#F44336';
   };
 
   // Apply to job
@@ -242,6 +251,16 @@ const JobSeekerDashboard = () => {
       });
       if (res.ok) {
         setAppliedJobId(job._id);
+        // Persist minimal application record locally for profile page
+        const existing = JSON.parse(localStorage.getItem('appliedJobs') || '[]');
+        existing.push({
+          id: job._id,
+          title: job.title,
+          company: job.company,
+          status: 'Pending',
+          createdAt: new Date().toISOString(),
+        });
+        localStorage.setItem('appliedJobs', JSON.stringify(existing));
       } else {
         setError('Failed to apply');
       }
@@ -339,12 +358,49 @@ const JobSeekerDashboard = () => {
         </div>
         {score !== null && (
           <div className="resume-analysis-results">
-            <div className="score-display">
-              <div className="score-circle">
-                <span className="score-number">{score}</span>
-                <span className="score-total">/100</span>
+            <div className="analysis-header">
+              <div className="score-panel">
+                <div className="score-display">
+                  <div className="score-circle">
+                    <span className="score-number">{score}</span>
+                    <span className="score-total">/100</span>
+                  </div>
+                  <div className="score-label">Resume Health Score</div>
+                </div>
               </div>
-              <div className="score-label">Resume Health Score</div>
+
+              {professionalismScore && (
+                <div className="breakdown">
+                  <h4>Professionalism Breakdown</h4>
+                  <div className="breakdown-grid">
+                    {[
+                      { key: 'grammar', label: 'Grammar & Language', max: 20 },
+                      { key: 'structure', label: 'Structure & Format', max: 25 },
+                      { key: 'readability', label: 'Readability', max: 15 },
+                      { key: 'keywords', label: 'Keywords & Skills', max: 15 },
+                      { key: 'contact_info', label: 'Contact Information', max: 10 },
+                      { key: 'achievements', label: 'Achievements', max: 5 },
+                      { key: 'formatting', label: 'Formatting & Presentation', max: 10 },
+                      { key: 'action_verbs', label: 'Action Verbs', max: 5 },
+                      { key: 'quantification', label: 'Quantification & Metrics', max: 5 },
+                    ].map(item => (
+                      <div className="breakdown-item" key={item.key}>
+                        <span>{item.label}</span>
+                        <div className="breakdown-bar">
+                          <div
+                            className="breakdown-fill"
+                            style={{
+                              width: `${Math.min(100, (professionalismScore[item.key] / item.max) * 100)}%`,
+                              backgroundColor: getScoreColor((professionalismScore[item.key] / item.max) * 100)
+                            }}
+                          ></div>
+                          <span className="breakdown-score">{Math.round(professionalismScore[item.key])}/{item.max}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Debug information */}
