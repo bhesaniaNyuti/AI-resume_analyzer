@@ -4,6 +4,7 @@ const cors = require('cors');
 const bcrypt = require('bcrypt');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -131,7 +132,6 @@ const upload = multer({
 });
 
 // Create uploads directory if it doesn't exist
-const fs = require('fs');
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads');
 }
@@ -664,6 +664,25 @@ app.post('/api/apply', upload.any(), async (req, res) => {
       return res.status(400).json({ error: 'Invalid Job ID format' });
     }
     
+    // Check if this user has already applied for this job
+    const existingApplication = await Application.findOne({
+      jobId: jobId,
+      seekerEmail: seekerEmail
+    });
+    
+    if (existingApplication) {
+      console.log('User has already applied for this job:', {
+        jobId: jobId,
+        seekerEmail: seekerEmail,
+        existingApplicationId: existingApplication._id
+      });
+      return res.status(400).json({ 
+        error: 'You have already applied for this job.',
+        alreadyApplied: true,
+        applicationId: existingApplication._id
+      });
+    }
+    
     // Create application data
     const applicationData = {
       jobId,
@@ -847,11 +866,242 @@ app.get('/api/user/:id', async (req, res) => {
       id: user._id,
       name: user.name,
       email: user.email,
-      workExp: user.workExp
+      workExp: user.workExp,
+      phone: user.phone,
+      location: user.location,
+      education: user.education,
+      institute: user.institute,
+      gradYear: user.gradYear,
+      skills: user.skills,
+      portfolio: user.portfolio,
+      summary: user.summary,
+      avatarUrl: user.avatarUrl
     });
   } catch (err) {
     console.error('Fetch user error:', err);
     res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+});
+
+// Get user profile by email
+app.get('/api/user/email/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const user = await JobSeeker.findOne({ email });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      workExp: user.workExp,
+      phone: user.phone,
+      location: user.location,
+      education: user.education,
+      institute: user.institute,
+      gradYear: user.gradYear,
+      skills: user.skills,
+      portfolio: user.portfolio,
+      summary: user.summary,
+      avatarUrl: user.avatarUrl
+    });
+  } catch (err) {
+    console.error('Fetch user by email error:', err);
+    res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+});
+
+// Get recruiter profile by email
+app.get('/api/recruiter/email/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const recruiter = await Recruiter.findOne({ email });
+    
+    if (!recruiter) {
+      return res.status(404).json({ error: 'Recruiter not found' });
+    }
+    
+    res.json({
+      id: recruiter._id,
+      name: recruiter.name,
+      email: recruiter.email,
+      company: recruiter.company,
+      phone: recruiter.phone,
+      website: recruiter.website,
+      industry: recruiter.industry,
+      size: recruiter.size
+    });
+  } catch (err) {
+    console.error('Fetch recruiter by email error:', err);
+    res.status(500).json({ error: 'Failed to fetch recruiter profile' });
+  }
+});
+
+// Get applications by seeker email
+app.get('/api/applications', async (req, res) => {
+  try {
+    const { seekerEmail, recruiterEmail, jobId, status } = req.query;
+    
+    let query = {};
+    if (seekerEmail) query.seekerEmail = seekerEmail;
+    if (recruiterEmail) query.recruiterEmail = recruiterEmail;
+    if (jobId) {
+      if (!mongoose.Types.ObjectId.isValid(jobId)) {
+        return res.status(400).json({ error: 'Invalid Job ID format' });
+      }
+      query.jobId = jobId;
+    }
+    if (status) query.status = status;
+    
+    const applications = await Application.find(query)
+      .populate('jobId', 'title company location employmentType experienceRequired')
+      .sort({ appliedAt: -1 });
+    
+    res.json(applications);
+  } catch (err) {
+    console.error('Fetch applications error:', err);
+    res.status(500).json({ error: 'Failed to fetch applications' });
+  }
+});
+
+// Check if user has applied to a specific job
+app.get('/api/check-application/:jobId/:seekerEmail', async (req, res) => {
+  try {
+    const { jobId, seekerEmail } = req.params;
+    
+    // Validate jobId format
+    if (!mongoose.Types.ObjectId.isValid(jobId)) {
+      return res.status(400).json({ error: 'Invalid Job ID format' });
+    }
+    
+    // Decode email if it's URL encoded
+    const decodedEmail = decodeURIComponent(seekerEmail);
+    
+    const application = await Application.findOne({
+      jobId: jobId,
+      seekerEmail: decodedEmail
+    });
+    
+    res.json({
+      hasApplied: !!application,
+      application: application || null
+    });
+  } catch (err) {
+    console.error('Check application error:', err);
+    res.status(500).json({ error: 'Failed to check application status' });
+  }
+});
+
+// Update application status
+app.patch('/api/applications/:applicationId/status', async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const { status, recruiterEmail } = req.body;
+    
+    if (!status) {
+      return res.status(400).json({ error: 'Status is required' });
+    }
+    
+    const validStatuses = ['pending', 'reviewed', 'shortlisted', 'rejected', 'hired'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be one of: ' + validStatuses.join(', ') });
+    }
+    
+    // Find application
+    const application = await Application.findById(applicationId);
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    
+    // Verify recruiter owns the job (optional check)
+    if (recruiterEmail) {
+      const job = await Job.findById(application.jobId);
+      if (job && job.recruiterEmail !== recruiterEmail) {
+        return res.status(403).json({ error: 'Not authorized to update this application' });
+      }
+    }
+    
+    // Update status
+    application.status = status;
+    application.updatedAt = new Date();
+    await application.save();
+    
+    res.json({ 
+      message: 'Application status updated successfully', 
+      application 
+    });
+  } catch (err) {
+    console.error('Update application status error:', err);
+    res.status(500).json({ error: 'Failed to update application status' });
+  }
+});
+
+// Get all applications for a recruiter (across all their jobs)
+app.get('/api/recruiter/:recruiterEmail/applications', async (req, res) => {
+  try {
+    const { recruiterEmail } = req.params;
+    const { status, jobId } = req.query;
+    
+    let query = { recruiterEmail };
+    if (status) query.status = status;
+    if (jobId) {
+      if (!mongoose.Types.ObjectId.isValid(jobId)) {
+        return res.status(400).json({ error: 'Invalid Job ID format' });
+      }
+      query.jobId = jobId;
+    }
+    
+    const applications = await Application.find(query)
+      .populate('jobId', 'title company location employmentType experienceRequired')
+      .sort({ appliedAt: -1 });
+    
+    res.json(applications);
+  } catch (err) {
+    console.error('Fetch recruiter applications error:', err);
+    res.status(500).json({ error: 'Failed to fetch applications' });
+  }
+});
+
+// Update recruiter profile
+app.put('/api/recruiter/profile', async (req, res) => {
+  try {
+    const {
+      email,
+      name,
+      phone,
+      company,
+      website,
+      industry,
+      size
+    } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const update = {
+      ...(name !== undefined && { name }),
+      ...(phone !== undefined && { phone }),
+      ...(company !== undefined && { company }),
+      ...(website !== undefined && { website }),
+      ...(industry !== undefined && { industry }),
+      ...(size !== undefined && { size }),
+    };
+
+    const options = { upsert: false, new: true };
+    const updated = await Recruiter.findOneAndUpdate({ email }, update, options);
+    
+    if (!updated) {
+      return res.status(404).json({ error: 'Recruiter not found' });
+    }
+    
+    res.json({ message: 'Profile saved', recruiter: updated });
+  } catch (err) {
+    console.error('Update recruiter profile error:', err);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 

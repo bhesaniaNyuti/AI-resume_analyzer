@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from utils.resume_parser import extract_text, compute_resume_score, generate_enhanced_resume
@@ -7,7 +7,7 @@ import hashlib
 import json
 import re
 import random
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 # import spacy
 # import textstat
@@ -16,7 +16,14 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -538,3 +545,254 @@ async def clear_upload():
     global current_upload
     current_upload = None
     return {"success": True, "message": "Upload cleared successfully"}
+
+@app.get("/")
+async def root():
+    """Root endpoint to verify server is running."""
+    return {
+        "message": "FastAPI Resume Analyzer Server is running",
+        "status": "ok",
+        "docs": "/docs",
+        "endpoints": {
+            "analyze_resume": "/api/analyze-resume",
+            "clear_upload": "/api/clear-upload"
+        }
+    }
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy", "service": "resume-analyzer"}
+
+@app.post("/api/analyze-resumes-for-job")
+async def analyze_resumes_for_job(job_data: Dict[str, Any] = Body(...)):
+    """
+    Analyze multiple resumes against a job description and required skills.
+    Returns resumes sorted by match score.
+    """
+    try:
+        job_id = job_data.get("jobId")
+        job_description = job_data.get("jobDescription", "")
+        required_skills = job_data.get("requiredSkills", [])
+        resume_paths = job_data.get("resumePaths", [])
+        
+        if not job_id:
+            return {"error": "Job ID is required"}
+        
+        if not resume_paths:
+            return {"error": "No resume paths provided"}
+        
+        from utils.resume_parser import extract_text, match_resume_to_job
+        import os
+        
+        results = []
+        uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
+        
+        for resume_info in resume_paths:
+            try:
+                resume_path = resume_info.get("path") or resume_info.get("resumePath")
+                seeker_email = resume_info.get("seekerEmail", "Unknown")
+                application_id = resume_info.get("applicationId", "")
+                
+                if not resume_path:
+                    continue
+                
+                # Construct full file path
+                # Handle both relative and absolute paths
+                if os.path.isabs(resume_path):
+                    full_path = resume_path
+                else:
+                    full_path = os.path.join(uploads_dir, resume_path)
+                
+                if not os.path.exists(full_path):
+                    print(f"Resume file not found: {full_path}")
+                    # Try alternative paths
+                    alt_paths = [
+                        os.path.join(uploads_dir, os.path.basename(resume_path)),
+                        resume_path,
+                        os.path.join(os.path.dirname(__file__), "uploads", os.path.basename(resume_path))
+                    ]
+                    full_path = None
+                    for alt_path in alt_paths:
+                        if os.path.exists(alt_path):
+                            full_path = alt_path
+                            print(f"Found resume at alternative path: {full_path}")
+                            break
+                    
+                    if not full_path:
+                        print(f"Resume file not found in any location. Tried: {resume_path}, {alt_paths}")
+                        # Still add to results with 0 score so user knows resume is missing
+                        results.append({
+                            "seekerEmail": seeker_email,
+                            "applicationId": application_id,
+                            "resumePath": resume_path,
+                            "matchScore": 0,
+                            "skillsMatch": 0,
+                            "descriptionMatch": 0,
+                            "keywordsMatch": 0,
+                            "matchedSkills": [],
+                            "missingSkills": required_skills if isinstance(required_skills, list) else (required_skills.split(',') if isinstance(required_skills, str) else []),
+                            "resumeFileName": os.path.basename(resume_path),
+                            "error": "Resume file not found"
+                        })
+                        continue
+                
+                # Extract text from resume
+                from io import BytesIO
+                resume_text = None
+                try:
+                    print(f"Attempting to read resume file: {full_path}")
+                    with open(full_path, 'rb') as f:
+                        file_content = f.read()
+                        if len(file_content) == 0:
+                            raise Exception("File is empty")
+                        file_obj = BytesIO(file_content)
+                        file_obj.filename = os.path.basename(resume_path)
+                        
+                        resume_text = extract_text(file_obj)
+                        print(f"Extracted {len(resume_text)} characters from resume")
+                        
+                        if not resume_text or len(resume_text.strip()) < 50:
+                            print(f"Warning: Resume text is too short or empty for {seeker_email} ({len(resume_text) if resume_text else 0} chars)")
+                            # Still process it, might have some content
+                except Exception as extract_error:
+                    print(f"ERROR extracting text from resume {resume_path}: {str(extract_error)}")
+                    import traceback
+                    traceback.print_exc()
+                    # Add to results with error
+                    results.append({
+                        "seekerEmail": seeker_email,
+                        "applicationId": application_id,
+                        "resumePath": resume_path,
+                        "matchScore": 0,
+                        "skillsMatch": 0,
+                        "descriptionMatch": 0,
+                        "keywordsMatch": 0,
+                        "matchedSkills": [],
+                        "missingSkills": required_skills if isinstance(required_skills, list) else (required_skills.split(',') if isinstance(required_skills, str) else []),
+                        "resumeFileName": os.path.basename(resume_path),
+                        "error": f"Failed to extract text: {str(extract_error)}"
+                    })
+                    continue
+                
+                if not resume_text:
+                    print(f"ERROR: No text extracted from resume for {seeker_email}")
+                    results.append({
+                        "seekerEmail": seeker_email,
+                        "applicationId": application_id,
+                        "resumePath": resume_path,
+                        "matchScore": 0,
+                        "skillsMatch": 0,
+                        "descriptionMatch": 0,
+                        "keywordsMatch": 0,
+                        "matchedSkills": [],
+                        "missingSkills": required_skills if isinstance(required_skills, list) else (required_skills.split(',') if isinstance(required_skills, str) else []),
+                        "resumeFileName": os.path.basename(resume_path),
+                        "error": "No text extracted from resume"
+                    })
+                    continue
+                
+                # Match resume to job
+                print(f"\n=== Analyzing resume for {seeker_email} ===")
+                print(f"Resume text length: {len(resume_text)}")
+                print(f"Job description length: {len(job_description)}")
+                print(f"Required skills: {required_skills}")
+                
+                try:
+                    match_result = match_resume_to_job(resume_text, job_description, required_skills)
+                    print(f"Match score: {match_result['total_score']}%")
+                    print(f"  - Skills match: {match_result['skills_match']}/50")
+                    print(f"  - Description match: {match_result['description_match']}/30")
+                    print(f"  - Keywords match: {match_result['keywords_match']}/20")
+                    print(f"Matched skills: {match_result.get('matched_skills', [])}")
+                    print(f"Missing skills: {match_result.get('missing_skills', [])}")
+                except Exception as match_error:
+                    print(f"ERROR matching resume to job: {str(match_error)}")
+                    import traceback
+                    traceback.print_exc()
+                    match_result = {
+                        "total_score": 0,
+                        "skills_match": 0,
+                        "description_match": 0,
+                        "keywords_match": 0,
+                        "matched_skills": [],
+                        "missing_skills": required_skills if isinstance(required_skills, list) else (required_skills.split(',') if isinstance(required_skills, str) else [])
+                    }
+                
+                results.append({
+                    "seekerEmail": seeker_email,
+                    "applicationId": application_id,
+                    "resumePath": resume_path,
+                    "matchScore": match_result["total_score"],
+                    "skillsMatch": match_result["skills_match"],
+                    "descriptionMatch": match_result["description_match"],
+                    "keywordsMatch": match_result["keywords_match"],
+                    "matchedSkills": match_result.get("matched_skills", []),
+                    "missingSkills": match_result.get("missing_skills", []),
+                    "resumeFileName": os.path.basename(resume_path)
+                })
+                print(f"✓ Successfully analyzed resume for {seeker_email}: {match_result['total_score']}% match\n")
+                
+            except Exception as e:
+                print(f"ERROR processing resume {resume_path}: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                # Add to results with error so user knows something went wrong
+                results.append({
+                    "seekerEmail": seeker_email,
+                    "applicationId": application_id,
+                    "resumePath": resume_path,
+                    "matchScore": 0,
+                    "skillsMatch": 0,
+                    "descriptionMatch": 0,
+                    "keywordsMatch": 0,
+                    "matchedSkills": [],
+                    "missingSkills": [],
+                    "resumeFileName": os.path.basename(resume_path) if resume_path else "unknown",
+                    "error": f"Processing error: {str(e)}"
+                })
+                continue
+        
+        # Sort by match score (highest first)
+        results.sort(key=lambda x: x["matchScore"], reverse=True)
+        
+        # Filter to only show resumes with match score >= threshold (configurable)
+        threshold = job_data.get("minMatchScore", 0)
+        filtered_results = [r for r in results if r["matchScore"] >= threshold]
+        
+        # If threshold is 0, show all results
+        if threshold == 0:
+            filtered_results = results
+        
+        print(f"\n{'='*60}")
+        print(f"ANALYSIS SUMMARY")
+        print(f"{'='*60}")
+        print(f"Total resume paths sent: {len(resume_paths)}")
+        print(f"Total results processed: {len(results)}")
+        print(f"Results after threshold filter ({threshold}%): {len(filtered_results)}")
+        if len(results) == 0:
+            print("⚠️  WARNING: No results were generated!")
+            print("   This could mean:")
+            print("   - Resume files not found")
+            print("   - All resumes failed to process")
+            print("   - Check errors above for details")
+        print(f"{'='*60}\n")
+        
+        return {
+            "success": True,
+            "jobId": job_id,
+            "totalResumes": len(resume_paths),
+            "matchingResumes": len(filtered_results),
+            "results": filtered_results,
+            "allResults": results,  # Include all for reference
+            "threshold": threshold,
+            "processedCount": len(results)
+        }
+        
+    except Exception as e:
+        print(f"Error analyzing resumes for job: {str(e)}")
+        return {"error": f"Failed to analyze resumes: {str(e)}"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)
