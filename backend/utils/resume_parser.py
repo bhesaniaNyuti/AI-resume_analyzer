@@ -16,18 +16,38 @@ import json
 nlp = spacy.load("en_core_web_sm", disable=["ner", "lemmatizer"])
 
 def extract_text(file):
-    """Extract text from PDF or DOCX file with normalization."""
+    """Extract text from PDF or DOCX file with normalization.
+    
+    Supports both FastAPI UploadFile objects and file-like objects (BytesIO, file handles).
+    """
     try:
+        # Determine if it's a FastAPI UploadFile or a regular file-like object
+        if hasattr(file, 'file') and hasattr(file, 'filename'):
+            # FastAPI UploadFile object
+            file_obj = file.file
+            filename = file.filename
+        elif hasattr(file, 'filename'):
+            # File-like object with filename attribute (e.g., BytesIO with filename set)
+            file_obj = file
+            filename = file.filename
+        else:
+            # Regular file-like object - try to get filename from attributes or use default
+            file_obj = file
+            filename = getattr(file, 'filename', 'unknown.pdf')
+        
+        # Reset file pointer to beginning
+        file_obj.seek(0)
+        
+        # Extract text based on file type
         text = ""
-        if file.filename.endswith(".pdf"):
-            reader = PdfReader(file.file)
+        if filename.lower().endswith(".pdf"):
+            reader = PdfReader(file_obj)
             text = "".join(page.extract_text() or "" for page in reader.pages)
-        elif file.filename.endswith((".doc", ".docx")):
-            file.file.seek(0)
-            doc = Document(file.file)
+        elif filename.lower().endswith((".doc", ".docx")):
+            doc = Document(file_obj)
             text = "\n".join(para.text for para in doc.paragraphs if para.text.strip())
         else:
-            raise ValueError("Unsupported file format")
+            raise ValueError(f"Unsupported file format: {filename}")
 
         # Normalize text to remove encoding issues and extra whitespace
         text = unicodedata.normalize("NFKD", text)
@@ -465,3 +485,138 @@ def generate_enhanced_resume(original_file, output_dir, sections):
         return corrected_path, professional_path
     except Exception as e:
         raise Exception(f"Failed to generate enhanced resume: {str(e)}")
+
+def match_resume_to_job(resume_text, job_description, required_skills):
+    """
+    Match a resume against job description and required skills.
+    Returns a match score (0-100) and matching details.
+    """
+    try:
+        resume_lower = resume_text.lower()
+        job_desc_lower = job_description.lower() if job_description else ""
+        
+        # Extract skills from resume
+        resume_sections = extract_resume_sections(resume_text)
+        resume_skills = [skill.lower() for skill in resume_sections.get('skills', [])]
+        resume_skills_text = ' '.join(resume_skills).lower()
+        
+        # Normalize required skills
+        if isinstance(required_skills, str):
+            required_skills_list = [skill.strip().lower() for skill in required_skills.split(',')]
+        elif isinstance(required_skills, list):
+            required_skills_list = [str(skill).strip().lower() for skill in required_skills]
+        else:
+            required_skills_list = []
+        
+        # Calculate match score components
+        match_details = {
+            "skills_match": 0,
+            "description_match": 0,
+            "keywords_match": 0,
+            "total_score": 0,
+            "matched_skills": [],
+            "missing_skills": []
+        }
+        
+        # 1. Skills Matching (50 points)
+        if required_skills_list:
+            matched_skills = []
+            missing_skills = []
+            
+            for skill in required_skills_list:
+                skill_clean = skill.strip()
+                if not skill_clean:
+                    continue
+                    
+                # Check if skill appears in resume (exact or partial match)
+                skill_found = False
+                
+                # Exact match
+                if skill_clean in resume_skills_text or skill_clean in resume_lower:
+                    skill_found = True
+                else:
+                    # Partial match - check if key words from skill are in resume
+                    skill_words = skill_clean.split()
+                    if len(skill_words) > 0:
+                        # Check if at least 50% of skill words are found
+                        found_words = sum(1 for word in skill_words if len(word) > 3 and word in resume_lower)
+                        if found_words >= len(skill_words) * 0.5:
+                            skill_found = True
+                
+                if skill_found:
+                    matched_skills.append(skill)
+                else:
+                    missing_skills.append(skill)
+            
+            # Calculate skills match score
+            if len(required_skills_list) > 0:
+                skills_match_ratio = len(matched_skills) / len(required_skills_list)
+                match_details["skills_match"] = int(skills_match_ratio * 50)
+            else:
+                match_details["skills_match"] = 0
+            
+            match_details["matched_skills"] = matched_skills
+            match_details["missing_skills"] = missing_skills
+        else:
+            match_details["skills_match"] = 0
+        
+        # 2. Job Description Keywords Matching (30 points)
+        if job_desc_lower:
+            # Extract important keywords from job description
+            # Remove common stop words
+            stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those'}
+            
+            # Extract meaningful words (3+ characters, not stop words)
+            desc_words = [word for word in re.findall(r'\b\w{3,}\b', job_desc_lower) 
+                         if word not in stop_words]
+            
+            # Count how many job description keywords appear in resume
+            matching_keywords = [word for word in desc_words if word in resume_lower]
+            
+            if len(desc_words) > 0:
+                keyword_match_ratio = len(matching_keywords) / len(desc_words)
+                match_details["description_match"] = int(keyword_match_ratio * 30)
+            else:
+                match_details["description_match"] = 0
+        else:
+            match_details["description_match"] = 0
+        
+        # 3. General Technical Keywords (20 points)
+        # Common technical terms that might be relevant
+        tech_keywords = [
+            "python", "javascript", "react", "sql", "java", "node", "html", "css",
+            "data analysis", "machine learning", "statistics", "excel", "power bi", "tableau",
+            "project management", "agile", "scrum", "git", "docker", "aws", "azure",
+            "database", "api", "rest", "json", "xml", "linux", "windows", "cloud"
+        ]
+        
+        found_tech_keywords = [kw for kw in tech_keywords if kw in resume_lower]
+        if len(tech_keywords) > 0:
+            tech_match_ratio = len(found_tech_keywords) / len(tech_keywords)
+            match_details["keywords_match"] = int(tech_match_ratio * 20)
+        else:
+            match_details["keywords_match"] = 0
+        
+        # Calculate total match score
+        match_details["total_score"] = (
+            match_details["skills_match"] + 
+            match_details["description_match"] + 
+            match_details["keywords_match"]
+        )
+        
+        # Ensure score is between 0-100
+        match_details["total_score"] = min(100, max(0, match_details["total_score"]))
+        
+        return match_details
+        
+    except Exception as e:
+        print(f"Error matching resume to job: {str(e)}")
+        return {
+            "skills_match": 0,
+            "description_match": 0,
+            "keywords_match": 0,
+            "total_score": 0,
+            "matched_skills": [],
+            "missing_skills": [],
+            "error": str(e)
+        }

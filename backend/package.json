@@ -5,7 +5,10 @@
   "scripts": {
     "test": "node index.js",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "start:fastapi": "python -m uvicorn app:app --reload --port 8000",
+    "start:node": "node index.js",
+    "start:all": "concurrently \"npm run start:node\" \"npm run start:fastapi\""
   },
   "keywords": [],
   "author": "",
@@ -22,6 +25,7 @@
     "nodemailer": "^6.9.7"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "concurrently": "^8.2.2"
   }
 }

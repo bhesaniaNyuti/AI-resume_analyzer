@@ -202,13 +202,38 @@ const JobSeekerDashboard = () => {
     try {
       const formData = new FormData();
       formData.append('file', resume);
+      
+      console.log('Uploading resume:', resume.name, 'Size:', resume.size);
+      console.log('API endpoint: http://127.0.0.1:8000/api/analyze-resume');
+      
       const res = await fetch('http://127.0.0.1:8000/api/analyze-resume', {
         method: 'POST',
         body: formData,
+        // Don't set Content-Type header - browser will set it automatically with boundary for FormData
       });
+      
+      console.log('Response status:', res.status);
+      console.log('Response headers:', res.headers);
+      
+      // Check if response is ok before parsing JSON
+      if (!res.ok) {
+        let errorMessage = `Server error: ${res.status} ${res.statusText}`;
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorData.detail || errorMessage;
+        } catch (e) {
+          const errorText = await res.text();
+          errorMessage = errorText || errorMessage;
+        }
+        setError(errorMessage);
+        setLoading(false);
+        return;
+      }
+      
       const data = await res.json();
       console.log('Resume analysis response:', data); // Debug logging
-      if (res.ok) {
+      
+      if (data.success !== false) {
         setScore(data.score);
         setProfessionalismScore(data.professionalism_score || null);
         setIssues(Array.isArray(data.issues) ? data.issues : []);
@@ -218,10 +243,19 @@ const JobSeekerDashboard = () => {
         setHasAnalyzed(true);
         console.log('Download URLs set:', data.download_urls); // Debug logging
       } else {
-        setError(data.error || 'Resume analysis failed');
+        setError(data.error || data.message || 'Resume analysis failed');
       }
     } catch (err) {
-      setError('Resume analysis failed: ' + err.message);
+      console.error('Resume analysis error:', err);
+      let errorMessage = 'Resume analysis failed: ';
+      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+        errorMessage += 'Cannot connect to server. Please ensure the FastAPI server is running on http://127.0.0.1:8000';
+      } else if (err.message.includes('CORS')) {
+        errorMessage += 'CORS error. Please check server CORS configuration.';
+      } else {
+        errorMessage += err.message;
+      }
+      setError(errorMessage);
     }
     setLoading(false);
   };
@@ -251,18 +285,31 @@ const JobSeekerDashboard = () => {
       });
       if (res.ok) {
         setAppliedJobId(job._id);
-        // Persist minimal application record locally for profile page
+        // Persist minimal application record locally for profile page (user-specific)
         const existing = JSON.parse(localStorage.getItem('appliedJobs') || '[]');
-        existing.push({
-          id: job._id,
-          title: job.title,
-          company: job.company,
-          status: 'Pending',
-          createdAt: new Date().toISOString(),
-        });
-        localStorage.setItem('appliedJobs', JSON.stringify(existing));
+        const userEmail = user?.email;
+        
+        // Only add if this user hasn't applied to this job yet
+        if (!existing.some(j => (j.id === job._id || j._id === job._id) && j.seekerEmail === userEmail)) {
+          existing.push({
+            id: job._id,
+            _id: job._id,
+            title: job.title,
+            company: job.company,
+            status: 'Pending',
+            seekerEmail: userEmail,
+            createdAt: new Date().toISOString(),
+          });
+          localStorage.setItem('appliedJobs', JSON.stringify(existing));
+        }
       } else {
-        setError('Failed to apply');
+        const errorData = await res.json().catch(() => ({}));
+        if (errorData.alreadyApplied) {
+          setError('You have already applied for this job.');
+          setAppliedJobId(job._id);
+        } else {
+          setError(errorData.error || 'Failed to apply');
+        }
       }
     } catch (err) {
       setError('Failed to apply: ' + err.message);
