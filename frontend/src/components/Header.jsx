@@ -10,8 +10,7 @@ export default function Header() {
   const [user, setUser] = useState(null);
   const [userType, setUserType] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
-  
-  
+
   const isProfile = location.pathname.startsWith('/profile') || location.pathname.startsWith('/recruiter-profile') || location.pathname.startsWith('/jobseeker-profile');
   const isLoggedIn = Boolean(localStorage.getItem('recruiterData') || localStorage.getItem('jobSeekerData'));
 
@@ -57,7 +56,6 @@ export default function Header() {
           <img src={NSLogo} alt="NexSkill Logo" className="nsf-logo" />
           <span className="nsf-brand">NexSkill</span>
         </Link>
-        {/* Actions */}
         <div className="nsf-actions">
           {isLoggedIn && user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -67,79 +65,81 @@ export default function Header() {
                 <div
                   className="nsf-profile-summary"
                   style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
-                onClick={() => setShowProfile(v => !v)}
+                  onClick={() => setShowProfile(v => !v)}
                 >
-                {user.profilePhoto ? (
-                  <img src={user.profilePhoto} alt="Profile" style={{ width: 38, height: 38, borderRadius: '50%' }} />
-                ) : (
-                  <FaUserCircle size={38} color="#8f7cff" />
-                )}
-                <div style={{ textAlign: 'right' }} onClick={(e) => { 
-                  e.stopPropagation(); 
-                  const r = localStorage.getItem('recruiterData');
-                  const s = localStorage.getItem('jobSeekerData');
-                  if (r) {
-                    window.location.href = '/recruiter-profile';
-                  } else if (s) {
-                    window.location.href = '/jobseeker-profile';
-                  } else {
-                    window.location.href = '/profile';
-                  }
-                }}>
-                  <div style={{ fontWeight: 700, fontSize: 16 }}>{user.name}</div>
-                  <div style={{ color: '#5a6473', fontSize: 13 }}>{user.email}</div>
-                </div>
-                </div>
-              {showProfile && (
-                <div
-                  className="nsf-profile-dropdown"
-                  style={{
-                    position: 'absolute',
-                    top: '110%',
-                    right: 0,
-                    background: '#fff',
-                    borderRadius: 12,
-                    boxShadow: '0 4px 24px 0 rgba(44,62,80,0.13)',
-                    padding: '1.2rem 1.5rem',
-                    minWidth: 260,
-                    zIndex: 100,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                    {user.profilePhoto ? (
-                      <img src={user.profilePhoto} alt="Profile" style={{ width: 44, height: 44, borderRadius: '50%' }} />
-                    ) : (
-                      <FaUserCircle size={44} color="#8f7cff" />
-                    )}
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 18 }}>{user.name}</div>
-                      <div style={{ color: '#5a6473', fontSize: 14 }}>{user.email}</div>
-                    </div>
+                  {user.profilePhoto ? (
+                    <img src={user.profilePhoto} alt="Profile" style={{ width: 38, height: 38, borderRadius: '50%' }} />
+                  ) : (
+                    <FaUserCircle size={38} color="#8f7cff" />
+                  )}
+                  <div style={{ textAlign: 'right' }} onClick={(e) => { 
+                    e.stopPropagation(); 
+                    const r = localStorage.getItem('recruiterData');
+                    const s = localStorage.getItem('jobSeekerData');
+                    if (r) {
+                      window.location.href = '/recruiter-profile';
+                    } else if (s) {
+                      window.location.href = '/jobseeker-profile';
+                    } else {
+                      window.location.href = '/profile';
+                    }
+                  }}>
+                    <div style={{ fontWeight: 700, fontSize: 16 }}>{user.name}</div>
+                    <div style={{ color: '#5a6473', fontSize: 13 }}>{user.email}</div>
                   </div>
-                  {userType === 'recruiter' && (
-                    <>
-                      <div style={{ fontSize: 15, marginBottom: 6 }}><b>Company:</b> {user.company}</div>
-                      <div style={{ fontSize: 15, marginBottom: 6 }}><b>Phone:</b> {user.phone}</div>
-                      <div style={{ fontSize: 15, marginBottom: 6 }}><b>Website:</b> {user.website}</div>
-                      <div style={{ fontSize: 15, marginBottom: 6 }}><b>Industry:</b> {user.industry}</div>
-                      <div style={{ fontSize: 15, marginBottom: 6 }}><b>Company Size:</b> {user.size}</div>
-                      <div style={{ height: 8 }} />
-                      <button onClick={goToDashboard} style={{ width: '100%', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '10px 12px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>Dashboard</button>
-                      <div style={{ height: 8 }} />
-                      <button onClick={handleLogout} style={{ width: '100%', background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', padding: '10px 12px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>Logout</button>
-                    </>
-                  )}
-                  {userType === 'jobseeker' && (
-                    <>
-                      <div style={{ fontSize: 15, marginBottom: 6 }}><b>Work Experience:</b> {user.workExp}</div>
-                      <div style={{ height: 8 }} />
-                      <button onClick={goToDashboard} style={{ width: '100%', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '10px 12px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>Dashboard</button>
-                      <div style={{ height: 8 }} />
-                      <button onClick={handleLogout} style={{ width: '100%', background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', padding: '10px 12px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>Logout</button>
-                    </>
-                  )}
                 </div>
-              )}
+                {showProfile && (
+                  <div
+                    className="nsf-profile-dropdown"
+                    style={{
+                      position: 'absolute',
+                      top: '110%',
+                      right: 0,
+                      background: '#fff',
+                      borderRadius: 12,
+                      boxShadow: '0 4px 24px 0 rgba(44,62,80,0.13)',
+                      padding: '1.2rem 1.5rem',
+                      minWidth: 280,
+                      zIndex: 100,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                      {user.profilePhoto ? (
+                        <img src={user.profilePhoto} alt="Profile" style={{ width: 44, height: 44, borderRadius: '50%' }} />
+                      ) : (
+                        <FaUserCircle size={44} color="#8f7cff" />
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 18 }}>{user.name}</div>
+                        <div style={{ color: '#5a6473', fontSize: 14 }}>{user.email}</div>
+                      </div>
+                    </div>
+                    {userType === 'recruiter' && (
+                      <>
+                        <div style={{ fontSize: 15, marginBottom: 6 }}><b>Company:</b> {user.company}</div>
+                        <div style={{ fontSize: 15, marginBottom: 6 }}><b>Phone:</b> {user.phone}</div>
+                        <div style={{ fontSize: 15, marginBottom: 6 }}><b>Website:</b> {user.website}</div>
+                        <div style={{ fontSize: 15, marginBottom: 6 }}><b>Industry:</b> {user.industry}</div>
+                        <div style={{ fontSize: 15, marginBottom: 6 }}><b>Company Size:</b> {user.size}</div>
+                        <button onClick={() => window.location.href = '/recruiter-profile'} style={{ width: '100%', background: '#eef2ff', color: '#4338ca', border: '1px solid #c7d2fe', padding: '10px 12px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>View Full Profile</button>
+                        <div style={{ height: 8 }} />
+                        <button onClick={goToDashboard} style={{ width: '100%', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '10px 12px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>Dashboard</button>
+                        <div style={{ height: 8 }} />
+                        <button onClick={handleLogout} style={{ width: '100%', background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', padding: '10px 12px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>Logout</button>
+                      </>
+                    )}
+                    {userType === 'jobseeker' && (
+                      <>
+                        <div style={{ fontSize: 15, marginBottom: 6 }}><b>Work Experience:</b> {user.workExp}</div>
+                        <button onClick={() => window.location.href = '/jobseeker-profile'} style={{ width: '100%', background: '#eef2ff', color: '#4338ca', border: '1px solid #c7d2fe', padding: '10px 12px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>View Full Profile</button>
+                        <div style={{ height: 8 }} />
+                        <button onClick={goToDashboard} style={{ width: '100%', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '10px 12px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>Dashboard</button>
+                        <div style={{ height: 8 }} />
+                        <button onClick={handleLogout} style={{ width: '100%', background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', padding: '10px 12px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>Logout</button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : (

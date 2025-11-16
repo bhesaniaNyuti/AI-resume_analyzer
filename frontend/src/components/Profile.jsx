@@ -6,25 +6,45 @@ export default function Profile() {
   const [user, setUser] = useState(null);
   const [appliedJobs, setAppliedJobs] = useState([]);
   const navigate = useNavigate();
-  const [summary, setSummary] = useState('');
+  const [summary, _setSummary] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState({});
   const [role, setRole] = useState('jobseeker');
 
+  // Initialize user/role once on mount to avoid re-renders loops
   useEffect(() => {
-    const seeker = localStorage.getItem('jobSeekerData');
-    const recruiter = localStorage.getItem('recruiterData');
-    if (recruiter) {
-      setUser(JSON.parse(recruiter));
-      setRole('recruiter');
-    } else if (seeker) {
-      setUser(JSON.parse(seeker));
-      setRole('jobseeker');
+    const currentRole = localStorage.getItem('currentUserRole');
+    if (currentRole === 'recruiter') {
+      const recruiter = localStorage.getItem('recruiterData');
+      if (recruiter) {
+        setUser(JSON.parse(recruiter));
+        setRole('recruiter');
+      }
+    } else if (currentRole === 'jobseeker') {
+      const seeker = localStorage.getItem('jobSeekerData');
+      if (seeker) {
+        setUser(JSON.parse(seeker));
+        setRole('jobseeker');
+      }
+    } else {
+      const seeker = localStorage.getItem('jobSeekerData');
+      const recruiter = localStorage.getItem('recruiterData');
+      if (recruiter) {
+        setUser(JSON.parse(recruiter));
+        setRole('recruiter');
+      } else if (seeker) {
+        setUser(JSON.parse(seeker));
+        setRole('jobseeker');
+      }
     }
-    // First try loading from backend; fall back to localStorage
+  }, []);
+
+  // Load applications when we know the user
+  useEffect(() => {
     const loadApplications = async () => {
       try {
-        const email = JSON.parse(seeker || recruiter || '{}')?.email;
+        const current = user || (localStorage.getItem('currentUserRole') === 'recruiter' ? JSON.parse(localStorage.getItem('recruiterData') || '{}') : JSON.parse(localStorage.getItem('jobSeekerData') || '{}'));
+        const email = current?.email;
         if (email) {
           const res = await fetch(`http://localhost:5000/api/applications?seekerEmail=${encodeURIComponent(email)}`);
           if (res.ok) {
@@ -43,7 +63,7 @@ export default function Profile() {
             }
           }
         }
-      } catch (err) {
+      } catch {
         // ignore and fall back to localStorage
       }
       // Fallback to localStorage but filter by user email
@@ -63,7 +83,7 @@ export default function Profile() {
       }
     };
     loadApplications();
-  }, []);
+  }, [user]);
 
   const chip = (text, hue) => (
     <motion.span whileHover={{ scale: 1.06 }} style={{ background: `hsla(${hue}, 90%, 95%, 1)`, color: `hsl(${hue}, 55%, 35%)`, padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600 }}>
@@ -76,7 +96,7 @@ export default function Profile() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 18 }}
+      style={{ background: 'var(--glass-bg)', border: '1px solid #e2e8f0', borderRadius: 16, padding: 18, boxShadow: 'var(--card-shadow)' }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h3 style={{ margin: 0, color: '#1f2a44' }}>{title}</h3>
@@ -118,22 +138,43 @@ export default function Profile() {
     setIsEditing(true);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     const normalized = {
       ...user,
       ...draft,
-      skills: draft.skills ? draft.skills.split(',').map(s => s.trim()).filter(Boolean) : [],
+      skills: draft.skills ? draft.skills.split(',').map(s => s.trim()).filter(Boolean) : (Array.isArray(user?.skills) ? user.skills : []),
     };
-    setUser(normalized);
-    localStorage.setItem('jobSeekerData', JSON.stringify(normalized));
-    setIsEditing(false);
+    let success = false;
+    try {
+      const endpoint = role === 'recruiter' ? 'http://localhost:5000/api/recruiter/profile' : 'http://localhost:5000/api/jobseeker/profile';
+      const res = await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...normalized, email: user?.email }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const next = role === 'recruiter' ? data.recruiter : data.user;
+        setUser(next);
+        localStorage.setItem(role === 'recruiter' ? 'recruiterData' : 'jobSeekerData', JSON.stringify(next));
+        setIsEditing(false);
+        success = true;
+        return;
+      }
+    } finally {
+      if (!success) {
+        setUser(normalized);
+        localStorage.setItem(role === 'recruiter' ? 'recruiterData' : 'jobSeekerData', JSON.stringify(normalized));
+        setIsEditing(false);
+      }
+    }
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: 24, background: 'linear-gradient(180deg,#f5f7ff 0%, #eef2ff 100%)', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
-      {/* floating glow accents */}
-      <motion.span style={{ position:'absolute', top:80, right:120, width:180, height:180, borderRadius:'50%', background:'#c7d2fe', filter:'blur(80px)', opacity:0.35 }} animate={{ x:[0,10,0] }} transition={{ duration:10, repeat:Infinity, repeatType:'mirror' }} />
-      <motion.span style={{ position:'absolute', bottom:60, left:120, width:220, height:220, borderRadius:'50%', background:'#a7f3d0', filter:'blur(90px)', opacity:0.25 }} animate={{ y:[0,-12,0] }} transition={{ duration:12, repeat:Infinity, repeatType:'mirror' }} />
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: 24, background: 'transparent', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
+      {/* floating glow accents (kept behind content, subtle) */}
+      <motion.span style={{ position:'absolute', top:80, right:120, width:180, height:180, borderRadius:'50%', background:'#c7d2fe', filter:'blur(80px)', opacity:0.18, pointerEvents:'none', zIndex:0 }} animate={{ x:[0,10,0] }} transition={{ duration:10, repeat:Infinity, repeatType:'mirror' }} />
+      <motion.span style={{ position:'absolute', bottom:60, left:120, width:220, height:220, borderRadius:'50%', background:'#a7f3d0', filter:'blur(90px)', opacity:0.1, pointerEvents:'none', zIndex:0 }} animate={{ y:[0,-12,0] }} transition={{ duration:12, repeat:Infinity, repeatType:'mirror' }} />
 
       <motion.button whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.02 }} onClick={() => navigate(-1)} style={{ marginBottom: 16, background: '#eef2ff', border: '1px solid #c7d2fe', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', position:'relative', zIndex:1 }}>← Back</motion.button>
 
@@ -142,10 +183,10 @@ export default function Profile() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 18, padding: 20, marginBottom: 18 }}
+        style={{ background: 'var(--glass-bg)', border: '1px solid #e2e8f0', borderRadius: 18, padding: 20, marginBottom: 18, boxShadow: 'var(--card-shadow)' }}
       >
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg,#8b5cf6,#6366f1)', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontSize: 22 }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--primary-gradient)', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontSize: 22, boxShadow: '0 6px 18px rgba(0,0,0,0.18)' }}>
             {(user?.name || 'U').charAt(0).toUpperCase()}
           </div>
           <div style={{ flex: 1 }}>
@@ -158,12 +199,12 @@ export default function Profile() {
               </div>
             )}
           </div>
-            <motion.button onClick={() => navigate(role === 'recruiter' ? '/recruiter-profile/edit' : '/jobseeker-profile/edit')} whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.03 }} style={{ background: '#eef2ff', color: '#4338ca', border: '1px solid #c7d2fe', padding: '10px 14px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>Edit Profile</motion.button>
+            <motion.button onClick={openEdit} whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.03 }} style={{ background: 'linear-gradient(90deg, #0099e6 0%, #6C63FF 100%)', color: '#fff', border: 'none', padding: '10px 14px', borderRadius: 10, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 12px rgba(108,99,255,0.13)' }}>Edit Profile</motion.button>
         </div>
         <div style={{ marginTop: 14 }}>
           <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>Profile Completeness {completeness}%</div>
           <div style={{ background: '#e5e7eb', height: 6, borderRadius: 6 }}>
-            <div style={{ width: `${completeness}%`, height: '100%', borderRadius: 6, background: 'linear-gradient(90deg,#8b5cf6,#6366f1)' }} />
+            <div style={{ width: `${completeness}%`, height: '100%', borderRadius: 6, background: 'var(--primary-gradient)' }} />
           </div>
         </div>
       </motion.div>
@@ -190,7 +231,7 @@ export default function Profile() {
             <Section title="Applications">
               <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
                 {(appliedJobs.length ? appliedJobs : []).map((j, idx) => (
-                    <motion.div key={idx} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} whileHover={{ y: -2, scale: 1.01 }} transition={{ duration: 0.35 }} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 14, display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+                    <motion.div key={idx} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} whileHover={{ y: -2, scale: 1.01 }} transition={{ duration: 0.35 }} style={{ background: 'var(--glass-bg)', border: '1px solid #e2e8f0', borderRadius: 16, padding: 14, display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, boxShadow: 'var(--card-shadow)' }}>
                       <div style={{ display: 'flex', gap: 12 }}>
                         <div style={{ width: 42, height: 42, borderRadius: 10, background: '#ede9fe', color: '#5b21b6', display: 'grid', placeItems: 'center', fontWeight: 800 }}>
                           {(j.company || 'C').charAt(0).toUpperCase()}
@@ -248,13 +289,14 @@ export default function Profile() {
           )}
         </div>
       </div>
+      <EditModal open={isEditing} draft={draft} setDraft={setDraft} onClose={() => setIsEditing(false)} onSave={saveEdit} />
     </motion.div>
   );
 }
 
 function Card({ title, value }) {
   return (
-    <motion.div whileHover={{ y: -2 }} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12 }}>
+    <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--glass-bg)', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, boxShadow: 'var(--card-shadow)' }}>
       <div style={{ fontWeight: 700, color: '#1f2a44', marginBottom: 6 }}>{title}</div>
       <div style={{ color: '#475569' }}>{value}</div>
     </motion.div>

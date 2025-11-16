@@ -62,7 +62,7 @@ const SuccessStories = () => (
     style={{
       padding: "80px 0 100px 0",
       background: "linear-gradient(135deg, #f8f9fb 60%, #e3f0ff 100%)",
-      minHeight: 600,
+      minHeight: 300,
       width: "100%",
     }}
   >
@@ -107,8 +107,8 @@ const SuccessStories = () => (
             background: "#fff",
             borderRadius: 32,
             padding: 48,
-            width: 420,
-            minHeight: 340,
+            width: 320,
+            minHeight: 150,
             boxShadow: "0 4px 24px rgba(33,150,243,0.08)",
             display: "flex",
             flexDirection: "column",

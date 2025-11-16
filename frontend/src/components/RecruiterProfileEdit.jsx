@@ -23,8 +23,10 @@ export default function RecruiterProfileEdit() {
   const save = async (e) => {
     e.preventDefault();
     try {
-      localStorage.setItem('recruiterData', JSON.stringify(draft));
-      // Optional: persist to backend if needed
+      const existingRaw = localStorage.getItem('recruiterData');
+      const existing = existingRaw ? JSON.parse(existingRaw) : {};
+      const merged = { ...existing, ...draft, id: existing.id || existing._id };
+      localStorage.setItem('recruiterData', JSON.stringify(merged));
       navigate('/recruiter-profile');
     } catch (e) {
       console.warn('Failed to save recruiter profile', e);

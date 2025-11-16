@@ -301,7 +301,16 @@ app.post('/api/login-jobseeker', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        workExp: user.workExp
+        phone: user.phone,
+        location: user.location,
+        workExp: user.workExp,
+        education: user.education,
+        institute: user.institute,
+        gradYear: user.gradYear,
+        skills: Array.isArray(user.skills) ? user.skills : [],
+        portfolio: user.portfolio,
+        summary: user.summary,
+        avatarUrl: user.avatarUrl
       }
     });
   } catch (err) {
@@ -389,8 +398,8 @@ app.post('/api/register-recruiter', async (req, res) => {
   }
 });
 
-// Login Recruiter endpoint
-app.post('/api/login-recruiter', async (req, res) => {
+  // Login Recruiter endpoint
+  app.post('/api/login-recruiter', async (req, res) => {
   try {
     const { email, password } = req.body;
     const recruiter = await Recruiter.findOne({ email });
@@ -407,14 +416,53 @@ app.post('/api/login-recruiter', async (req, res) => {
         id: recruiter._id,
         name: recruiter.name,
         email: recruiter.email,
-        company: recruiter.company
+        phone: recruiter.phone,
+        company: recruiter.company,
+        website: recruiter.website,
+        industry: recruiter.industry,
+        size: recruiter.size
       }
     });
   } catch (err) {
     console.error('Recruiter login error:', err);
     res.status(500).json({ error: 'Recruiter login failed' });
   }
-});
+  });
+  
+  // Update Recruiter profile
+  app.put('/api/recruiter/profile', async (req, res) => {
+    try {
+      const { email, name, phone, company, website, industry, size } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+      const update = {
+        ...(name !== undefined && { name }),
+        ...(phone !== undefined && { phone }),
+        ...(company !== undefined && { company }),
+        ...(website !== undefined && { website }),
+        ...(industry !== undefined && { industry }),
+        ...(size !== undefined && { size })
+      };
+      const options = { upsert: true, new: true, setDefaultsOnInsert: true };
+      const updated = await Recruiter.findOneAndUpdate({ email }, update, options);
+      res.json({
+        message: 'Profile saved',
+        recruiter: {
+          id: updated._id,
+          name: updated.name,
+          email: updated.email,
+          phone: updated.phone,
+          company: updated.company,
+          website: updated.website,
+          industry: updated.industry,
+          size: updated.size
+        }
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to update recruiter profile' });
+    }
+  });
 
 // Recruiter creates a job post
 app.post('/api/jobs', async (req, res) => {
@@ -826,6 +874,106 @@ app.get('/api/jobs/:jobId/applications', async (req, res) => {
   }
 });
 
+app.get('/api/jobs/:jobId/analyze', async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(jobId)) {
+      return res.status(400).json({ error: 'Invalid Job ID format' });
+    }
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+    const applications = await Application.find({ jobId });
+    const jobSkills = Array.isArray(job.requiredSkills) ? job.requiredSkills.map(s => s.toLowerCase().trim()) : [];
+    const jdTokens = (job.description || '').toLowerCase().match(/\b[a-z]{3,}\b/g) || [];
+    const jdSet = new Set(jdTokens);
+    const results = [];
+    for (const app of applications) {
+      let applicantSkills = [];
+      if (app.keySkills) {
+        applicantSkills = app.keySkills.split(/[\n,;]+/).map(s => s.toLowerCase().trim()).filter(Boolean);
+      }
+      let name = app.seekerEmail;
+      if (app.seekerId) {
+        try {
+          const seeker = await JobSeeker.findById(app.seekerId);
+          if (seeker && seeker.name) name = seeker.name;
+          if (Array.isArray(seeker && seeker.skills)) {
+            applicantSkills = applicantSkills.concat(seeker.skills.map(s => s.toLowerCase().trim()));
+          }
+        } catch {}
+      }
+      const skillMatches = jobSkills.filter(s => applicantSkills.includes(s)).length;
+      const skillScore = jobSkills.length ? (skillMatches / jobSkills.length) * 70 : 0;
+      const applicantTokens = applicantSkills.flatMap(s => s.split(/[^a-z]+/).filter(Boolean));
+      const jdMatches = applicantTokens.filter(t => jdSet.has(t)).length;
+      const jdScore = jdTokens.length ? Math.min((jdMatches / Math.max(applicantTokens.length, 1)) * 30, 30) : 0;
+      const score = Math.round(Math.min(skillScore + jdScore, 100));
+      results.push({ name, score });
+    }
+    results.sort((a, b) => b.score - a.score);
+    res.json({ topResumes: results.slice(0, 10) });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to analyze resumes' });
+  }
+});
+
+// Analyze resumes for a job (ATS-style)
+app.get('/api/jobs/:jobId/analyze', async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(jobId)) {
+      return res.status(400).json({ error: 'Invalid Job ID format' });
+    }
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    const applications = await Application.find({ jobId });
+    const jobSkills = Array.isArray(job.requiredSkills) ? job.requiredSkills.map(s => s.toLowerCase().trim()) : [];
+    const jdTokens = (job.description || '').toLowerCase().match(/\b[a-z]{3,}\b/g) || [];
+    const jdSet = new Set(jdTokens);
+
+    const results = [];
+    for (const app of applications) {
+      let applicantSkills = [];
+      if (app.keySkills) {
+        applicantSkills = app.keySkills.split(/[\n,;]+/).map(s => s.toLowerCase().trim()).filter(Boolean);
+      }
+
+      let name = app.seekerEmail;
+      if (app.seekerId && mongoose.Types.ObjectId.isValid(app.seekerId)) {
+        try {
+          const seeker = await JobSeeker.findById(app.seekerId);
+          if (seeker?.name) name = seeker.name;
+          if (Array.isArray(seeker?.skills)) {
+            applicantSkills = applicantSkills.concat(seeker.skills.map(s => s.toLowerCase().trim()));
+          }
+        } catch {}
+      }
+
+      const skillMatches = jobSkills.filter(s => applicantSkills.includes(s)).length;
+      const skillScore = jobSkills.length ? (skillMatches / jobSkills.length) * 70 : 0;
+
+      const applicantTokens = applicantSkills.flatMap(s => s.split(/[^a-z]+/).filter(Boolean));
+      const jdMatches = applicantTokens.filter(t => jdSet.has(t)).length;
+      const jdScore = jdTokens.length ? Math.min((jdMatches / Math.max(applicantTokens.length, 1)) * 30, 30) : 0;
+
+      const score = Math.round(Math.min(skillScore + jdScore, 100));
+      results.push({ name, score });
+    }
+
+    results.sort((a, b) => b.score - a.score);
+    res.json({ topResumes: results.slice(0, 10) });
+  } catch (err) {
+    console.error('Analyze resumes error:', err);
+    res.status(500).json({ error: 'Failed to analyze resumes' });
+  }
+});
+
 // Get recruiter profile by ID
 app.get('/api/recruiter/:id', async (req, res) => {
   try {
@@ -849,6 +997,30 @@ app.get('/api/recruiter/:id', async (req, res) => {
   } catch (err) {
     console.error('Fetch recruiter error:', err);
     res.status(500).json({ error: 'Failed to fetch recruiter profile' });
+  }
+});
+
+// Get recruiter profile by email
+app.get('/api/recruiter/by-email/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const recruiter = await Recruiter.findOne({ email });
+    if (!recruiter) {
+      return res.status(404).json({ error: 'Recruiter not found' });
+    }
+    res.json({
+      id: recruiter._id,
+      name: recruiter.name,
+      email: recruiter.email,
+      company: recruiter.company,
+      phone: recruiter.phone,
+      website: recruiter.website,
+      industry: recruiter.industry,
+      size: recruiter.size
+    });
+  } catch (err) {
+    console.error('Fetch recruiter by email error:', err);
+    res.status(500).json({ error: 'Failed to fetch recruiter by email' });
   }
 });
 
@@ -1106,4 +1278,4 @@ app.put('/api/recruiter/profile', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Backend running on port ${PORT}`)); 
+app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
