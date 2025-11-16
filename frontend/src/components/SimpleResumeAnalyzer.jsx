@@ -335,20 +335,6 @@ const SimpleResumeAnalyzer = () => {
               </div>
             </div>
 
-            {result.issues && result.issues.length > 0 && (
-              <div className="suggestions-section">
-                <h4>Improvement Suggestions</h4>
-                <ul className="suggestions-list">
-                  {result.issues.map((issue, index) => (
-                    <li key={index} className="suggestion-item">
-                      <span className="suggestion-icon">💡</span>
-                      <span className="suggestion-text">{issue}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
             {result.download_urls && Object.keys(result.download_urls).length > 0 && (
               <div className="download-section">
                 <h4>Download Improved Resume</h4>

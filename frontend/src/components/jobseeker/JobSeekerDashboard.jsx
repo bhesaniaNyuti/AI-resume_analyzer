@@ -569,20 +569,6 @@ const JobSeekerDashboard = () => {
                     </div>
                   </div>
                 )}
-
-                {issues.length > 0 && (
-                  <div className="suggestions-section">
-                    <h4>Improvement Suggestions</h4>
-                    <div className="suggestions-list">
-                      {issues.map((issue, idx) => (
-                        <div key={idx} className="suggestion-item">
-                          <span className="suggestion-icon">💡</span>
-                          <span className="suggestion-text">{issue}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>

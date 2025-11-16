@@ -87,7 +87,6 @@ export default function RecruiterDashboard() {
             contact: userData.email || ''
           }));
 
-<<<<<<< HEAD
           if (userData.id) {
             const response = await fetch(`http://localhost:5000/api/recruiter/${userData.id}/jobs`);
             if (response.ok) {
@@ -97,6 +96,7 @@ export default function RecruiterDashboard() {
                 title: job.title,
                 status: job.status,
                 description: job.description,
+                requiredSkills: job.requiredSkills || [],
                 resumes: 0,
                 topResumes: []
               })));
@@ -109,29 +109,6 @@ export default function RecruiterDashboard() {
                   }
                 } catch (error) {
                   console.error('Error fetching applications for job:', job._id, error);
-=======
-          // Fetch real jobs from backend
-          const response = await fetch(`http://localhost:5000/api/recruiter/${userData.id}/jobs`);
-          if (response.ok) {
-            const realJobs = await response.json();
-            setJobs(realJobs.map(job => ({
-              id: job._id,
-              title: job.title,
-              status: job.status,
-              description: job.description,
-              requiredSkills: job.requiredSkills || [],
-              resumes: 0, // Will be updated when applications are implemented
-              topResumes: []
-            })));
-            
-            // Fetch applications for each job to get total count
-            for (const job of realJobs) {
-              try {
-                const appsResponse = await fetch(`http://localhost:5000/api/jobs/${job._id}/applications`);
-                if (appsResponse.ok) {
-                  const apps = await appsResponse.json();
-                  setApplications(prev => ({ ...prev, [job._id]: apps }));
->>>>>>> 2bb1471589616cba8bfd5a0d323f30fbb97ddb66
                 }
               }
             }
@@ -179,24 +156,6 @@ export default function RecruiterDashboard() {
   const handleAnalyze = async (jobId) => {
     setAnalyzing(true);
     setAnalyzedJobId(jobId);
-<<<<<<< HEAD
-    try {
-      const res = await fetch(`http://localhost:5000/api/jobs/${jobId}/analyze`);
-      if (res.ok) {
-        const data = await res.json();
-        const sortedTop = Array.isArray(data.topResumes)
-          ? data.topResumes
-              .slice()
-              .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-              .slice(0, 10)
-          : [];
-        setJobs(prev => prev.map(j => (j.id === jobId ? { ...j, topResumes: sortedTop } : j)));
-      } else {
-        console.error('Analyze request failed:', res.status);
-      }
-    } catch (e) {
-      console.error('Error analyzing resumes:', e);
-=======
     
     try {
       // Get job details
@@ -287,7 +246,6 @@ export default function RecruiterDashboard() {
     } catch (error) {
       console.error('Error analyzing resumes:', error);
       alert('Error analyzing resumes: ' + error.message);
->>>>>>> 2bb1471589616cba8bfd5a0d323f30fbb97ddb66
     } finally {
       setAnalyzing(false);
     }
