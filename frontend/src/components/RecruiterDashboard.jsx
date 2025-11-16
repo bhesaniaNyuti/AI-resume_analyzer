@@ -68,44 +68,50 @@ export default function RecruiterDashboard() {
       try {
         const storedUserData = localStorage.getItem('recruiterData');
         if (storedUserData) {
-          const userData = JSON.parse(storedUserData);
+          let userData = JSON.parse(storedUserData);
+
+          if (!userData.id && userData.email) {
+            const ridRes = await fetch(`http://localhost:5000/api/recruiter/by-email/${encodeURIComponent(userData.email)}`);
+            if (ridRes.ok) {
+              const rid = await ridRes.json();
+              userData = { ...userData, id: rid.id };
+              localStorage.setItem('recruiterData', JSON.stringify(userData));
+            }
+          }
+
           setUser(userData);
-          
-          // Update newJob with user data
           setNewJob(prev => ({
             ...prev,
             company: userData.company || '',
             contact: userData.email || ''
           }));
 
-          // Fetch real jobs from backend
-          const response = await fetch(`http://localhost:5000/api/recruiter/${userData.id}/jobs`);
-          if (response.ok) {
-            const realJobs = await response.json();
-            setJobs(realJobs.map(job => ({
-              id: job._id,
-              title: job.title,
-              status: job.status,
-              description: job.description,
-              resumes: 0, // Will be updated when applications are implemented
-              topResumes: []
-            })));
-            
-            // Fetch applications for each job to get total count
-            for (const job of realJobs) {
-              try {
-                const appsResponse = await fetch(`http://localhost:5000/api/jobs/${job._id}/applications`);
-                if (appsResponse.ok) {
-                  const apps = await appsResponse.json();
-                  setApplications(prev => ({ ...prev, [job._id]: apps }));
+          if (userData.id) {
+            const response = await fetch(`http://localhost:5000/api/recruiter/${userData.id}/jobs`);
+            if (response.ok) {
+              const realJobs = await response.json();
+              setJobs(realJobs.map(job => ({
+                id: job._id,
+                title: job.title,
+                status: job.status,
+                description: job.description,
+                resumes: 0,
+                topResumes: []
+              })));
+              for (const job of realJobs) {
+                try {
+                  const appsResponse = await fetch(`http://localhost:5000/api/jobs/${job._id}/applications`);
+                  if (appsResponse.ok) {
+                    const apps = await appsResponse.json();
+                    setApplications(prev => ({ ...prev, [job._id]: apps }));
+                  }
+                } catch (error) {
+                  console.error('Error fetching applications for job:', job._id, error);
                 }
-              } catch (error) {
-                console.error('Error fetching applications for job:', job._id, error);
               }
             }
           }
         } else {
-          // Fallback to mock data if no stored data
           setUser(recruiter);
         }
       } catch (error) {
@@ -145,12 +151,28 @@ export default function RecruiterDashboard() {
     setExpandedJob(expandedJob === id ? null : id);
   };
 
-  const handleAnalyze = (jobId) => {
+  const handleAnalyze = async (jobId) => {
     setAnalyzing(true);
     setAnalyzedJobId(jobId);
-    setTimeout(() => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/jobs/${jobId}/analyze`);
+      if (res.ok) {
+        const data = await res.json();
+        const sortedTop = Array.isArray(data.topResumes)
+          ? data.topResumes
+              .slice()
+              .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+              .slice(0, 10)
+          : [];
+        setJobs(prev => prev.map(j => (j.id === jobId ? { ...j, topResumes: sortedTop } : j)));
+      } else {
+        console.error('Analyze request failed:', res.status);
+      }
+    } catch (e) {
+      console.error('Error analyzing resumes:', e);
+    } finally {
       setAnalyzing(false);
-    }, 1800);
+    }
   };
 
   // Fetch applications for a specific job
@@ -560,4 +582,4 @@ export default function RecruiterDashboard() {
       </motion.div>
     </motion.div>
   );
-} 
+}
