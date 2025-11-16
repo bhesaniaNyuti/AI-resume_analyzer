@@ -49,6 +49,7 @@ export default function RecruiterDashboard() {
   const [loading, setLoading] = useState(true);
   const [applications, setApplications] = useState({});
   const [showApplications, setShowApplications] = useState({});
+  const [analyzedResumes, setAnalyzedResumes] = useState({}); // Store analyzed results per job
   const [newJob, setNewJob] = useState({
     title: '',
     description: '',
@@ -86,6 +87,7 @@ export default function RecruiterDashboard() {
             contact: userData.email || ''
           }));
 
+<<<<<<< HEAD
           if (userData.id) {
             const response = await fetch(`http://localhost:5000/api/recruiter/${userData.id}/jobs`);
             if (response.ok) {
@@ -107,6 +109,29 @@ export default function RecruiterDashboard() {
                   }
                 } catch (error) {
                   console.error('Error fetching applications for job:', job._id, error);
+=======
+          // Fetch real jobs from backend
+          const response = await fetch(`http://localhost:5000/api/recruiter/${userData.id}/jobs`);
+          if (response.ok) {
+            const realJobs = await response.json();
+            setJobs(realJobs.map(job => ({
+              id: job._id,
+              title: job.title,
+              status: job.status,
+              description: job.description,
+              requiredSkills: job.requiredSkills || [],
+              resumes: 0, // Will be updated when applications are implemented
+              topResumes: []
+            })));
+            
+            // Fetch applications for each job to get total count
+            for (const job of realJobs) {
+              try {
+                const appsResponse = await fetch(`http://localhost:5000/api/jobs/${job._id}/applications`);
+                if (appsResponse.ok) {
+                  const apps = await appsResponse.json();
+                  setApplications(prev => ({ ...prev, [job._id]: apps }));
+>>>>>>> 2bb1471589616cba8bfd5a0d323f30fbb97ddb66
                 }
               }
             }
@@ -154,6 +179,7 @@ export default function RecruiterDashboard() {
   const handleAnalyze = async (jobId) => {
     setAnalyzing(true);
     setAnalyzedJobId(jobId);
+<<<<<<< HEAD
     try {
       const res = await fetch(`http://localhost:5000/api/jobs/${jobId}/analyze`);
       if (res.ok) {
@@ -170,6 +196,98 @@ export default function RecruiterDashboard() {
       }
     } catch (e) {
       console.error('Error analyzing resumes:', e);
+=======
+    
+    try {
+      // Get job details
+      const job = jobs.find(j => j.id === jobId);
+      if (!job) {
+        setAnalyzing(false);
+        return;
+      }
+      
+      // Get applications for this job
+      const jobApplications = applications[jobId] || [];
+      if (jobApplications.length === 0) {
+        alert('No applications found for this job.');
+        setAnalyzing(false);
+        return;
+      }
+      
+      // Prepare resume paths and job data
+      const resumePaths = jobApplications
+        .filter(app => app.resumePath)
+        .map(app => ({
+          path: app.resumePath,
+          resumePath: app.resumePath,
+          seekerEmail: app.seekerEmail,
+          applicationId: app._id
+        }));
+      
+      if (resumePaths.length === 0) {
+        alert('No resumes found in applications.');
+        setAnalyzing(false);
+        return;
+      }
+      
+      // Get job description and required skills
+      const jobDescription = job.description || '';
+      const requiredSkills = job.requiredSkills || [];
+      
+      console.log('=== Analyzing Resumes ===');
+      console.log('Job ID:', jobId);
+      console.log('Job Title:', job.title);
+      console.log('Job Description:', jobDescription ? jobDescription.substring(0, 100) + '...' : 'EMPTY');
+      console.log('Required Skills:', requiredSkills);
+      console.log('Resume Paths:', resumePaths);
+      
+      if (!jobDescription && (!requiredSkills || requiredSkills.length === 0)) {
+        console.warn('Warning: Job description and required skills are empty!');
+      }
+      
+      // Call backend API to analyze resumes
+      const response = await fetch('http://127.0.0.1:8000/api/analyze-resumes-for-job', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jobId: jobId,
+          jobDescription: jobDescription,
+          requiredSkills: requiredSkills,
+          resumePaths: resumePaths,
+          minMatchScore: 0 // Show all resumes, but sorted by match score
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Store analyzed results
+          setAnalyzedResumes(prev => ({
+            ...prev,
+            [jobId]: data.results
+          }));
+          
+          console.log('=== Analysis Results ===');
+          console.log('Total resumes analyzed:', data.totalResumes);
+          console.log('Matching resumes:', data.matchingResumes);
+          console.log('Results:', data.results);
+          
+          if (data.results.length === 0 && data.totalResumes > 0) {
+            console.warn('No results returned even though resumes were sent. Check server logs.');
+          }
+        } else {
+          alert('Analysis failed: ' + (data.error || 'Unknown error'));
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert('Failed to analyze resumes: ' + (errorData.error || 'Server error'));
+      }
+    } catch (error) {
+      console.error('Error analyzing resumes:', error);
+      alert('Error analyzing resumes: ' + error.message);
+>>>>>>> 2bb1471589616cba8bfd5a0d323f30fbb97ddb66
     } finally {
       setAnalyzing(false);
     }
@@ -463,21 +581,97 @@ export default function RecruiterDashboard() {
                       )}
                     </motion.button>
                     <AnimatePresence>
-                      {analyzedJobId === job.id && !analyzing && job.topResumes.length > 0 && (
+                      {analyzedJobId === job.id && !analyzing && analyzedResumes[job.id] && analyzedResumes[job.id].length > 0 && (
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 20 }}
-                          style={{ marginTop: 12 }}
+                          style={{ marginTop: 12, padding: '1rem', background: '#f8f9ff', borderRadius: 12, border: '1px solid #e6e4ff' }}
                         >
-                          <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8 }}>Top 10 Resumes (ATS Match)</div>
-                          <ol style={{ paddingLeft: 20 }}>
-                            {job.topResumes.map((resume, idx) => (
-                              <li key={idx} style={{ marginBottom: 4, fontSize: 15 }}>
-                                <span style={{ fontWeight: 600 }}>{resume.name}</span> — <span style={{ color: '#19c37d', fontWeight: 700 }}>{resume.score}% match</span>
-                              </li>
+                          <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 12, color: '#2d3748' }}>
+                            Matching Resumes ({analyzedResumes[job.id].length} found)
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {analyzedResumes[job.id].map((result, idx) => (
+                              <div 
+                                key={result.applicationId || idx} 
+                                style={{ 
+                                  background: '#fff', 
+                                  padding: '12px 16px', 
+                                  borderRadius: 8, 
+                                  border: '1px solid #e2e8f0',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontWeight: 600, color: '#2d3748', marginBottom: 4 }}>
+                                    {result.seekerEmail}
+                                  </div>
+                                  <div style={{ fontSize: 12, color: '#718096', marginBottom: 6 }}>
+                                    Matched Skills: {result.matchedSkills.length} / {result.matchedSkills.length + result.missingSkills.length || 1}
+                                    {result.missingSkills.length > 0 && (
+                                      <span style={{ color: '#e74c3c', marginLeft: 8 }}>
+                                        (Missing: {result.missingSkills.length})
+                                      </span>
+                                    )}
+                                  </div>
+                                  {result.matchedSkills.length > 0 && (
+                                    <div style={{ fontSize: 11, color: '#4a5568', marginBottom: 4 }}>
+                                      ✓ Matched: {result.matchedSkills.slice(0, 3).join(', ')}
+                                      {result.matchedSkills.length > 3 && ' ...'}
+                                    </div>
+                                  )}
+                                  {result.missingSkills.length > 0 && result.missingSkills.length <= 5 && (
+                                    <div style={{ fontSize: 11, color: '#e74c3c' }}>
+                                      ✗ Missing: {result.missingSkills.slice(0, 3).join(', ')}
+                                      {result.missingSkills.length > 3 && ' ...'}
+                                    </div>
+                                  )}
+                                  {result.error && (
+                                    <div style={{ fontSize: 11, color: '#e74c3c', marginTop: 4, fontWeight: 600 }}>
+                                      ⚠ Error: {result.error}
+                                    </div>
+                                  )}
+                                  <div style={{ fontSize: 10, color: '#a0aec0', marginTop: 4 }}>
+                                    Breakdown: Skills {result.skillsMatch}/50, Desc {result.descriptionMatch}/30, Keywords {result.keywordsMatch}/20
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'right', marginLeft: '1rem' }}>
+                                  <div style={{ 
+                                    fontSize: 18, 
+                                    fontWeight: 700, 
+                                    color: result.matchScore >= 70 ? '#19c37d' : result.matchScore >= 50 ? '#FF9800' : '#F44336'
+                                  }}>
+                                    {result.matchScore}%
+                                  </div>
+                                  <div style={{ fontSize: 11, color: '#718096' }}>Match</div>
+                                </div>
+                              </div>
                             ))}
-                          </ol>
+                          </div>
+                        </motion.div>
+                      )}
+                      {analyzedJobId === job.id && !analyzing && analyzedResumes[job.id] && analyzedResumes[job.id].length === 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 20 }}
+                          style={{ marginTop: 12, padding: '1rem', background: '#fff3cd', borderRadius: 12, border: '1px solid #ffc107' }}
+                        >
+                          <div style={{ fontWeight: 600, color: '#856404', marginBottom: 8 }}>
+                            No resumes analyzed or all resumes scored 0%.
+                          </div>
+                          <div style={{ fontSize: 12, color: '#856404' }}>
+                            Possible reasons:
+                            <ul style={{ marginTop: 8, paddingLeft: 20 }}>
+                              <li>Resume files not found in uploads folder</li>
+                              <li>Job description or required skills are empty</li>
+                              <li>Resume files couldn't be parsed</li>
+                            </ul>
+                            Check browser console and server logs for details.
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -508,8 +702,30 @@ export default function RecruiterDashboard() {
                                       <div style={{ fontWeight: 600, color: '#2d3748', marginBottom: 4 }}>
                                         {app.seekerEmail}
                                       </div>
-                                      <div style={{ fontSize: 14, color: '#718096', marginBottom: 8 }}>
+                                      <div style={{ fontSize: 14, color: '#718096', marginBottom: 4 }}>
                                         Applied: {new Date(app.appliedAt).toLocaleDateString()}
+                                      </div>
+                                      <div style={{ 
+                                        fontSize: 12, 
+                                        padding: '4px 8px', 
+                                        borderRadius: 4,
+                                        display: 'inline-block',
+                                        backgroundColor: 
+                                          app.status === 'hired' ? '#d4edda' :
+                                          app.status === 'shortlisted' ? '#d1ecf1' :
+                                          app.status === 'reviewed' ? '#fff3cd' :
+                                          app.status === 'rejected' ? '#f8d7da' :
+                                          '#e2e3e5',
+                                        color: 
+                                          app.status === 'hired' ? '#155724' :
+                                          app.status === 'shortlisted' ? '#0c5460' :
+                                          app.status === 'reviewed' ? '#856404' :
+                                          app.status === 'rejected' ? '#721c24' :
+                                          '#383d41',
+                                        fontWeight: 600,
+                                        textTransform: 'capitalize'
+                                      }}>
+                                        {app.status || 'pending'}
                                       </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: 8 }}>
@@ -537,6 +753,56 @@ export default function RecruiterDashboard() {
                                         </motion.button>
                                       )}
                                     </div>
+                                  </div>
+                                  
+                                  {/* Application Status */}
+                                  <div style={{ marginBottom: 12 }}>
+                                    <div style={{ fontSize: 12, color: '#718096', marginBottom: 4 }}>Status:</div>
+                                    <select
+                                      value={app.status || 'pending'}
+                                      onChange={async (e) => {
+                                        try {
+                                          const response = await fetch(`http://localhost:5000/api/applications/${app._id}/status`, {
+                                            method: 'PATCH',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({
+                                              status: e.target.value,
+                                              recruiterEmail: user.email
+                                            })
+                                          });
+                                          if (response.ok) {
+                                            // Update local state
+                                            setApplications(prev => ({
+                                              ...prev,
+                                              [job.id]: prev[job.id].map(a => 
+                                                a._id === app._id ? { ...a, status: e.target.value } : a
+                                              )
+                                            }));
+                                          } else {
+                                            alert('Failed to update application status');
+                                          }
+                                        } catch (error) {
+                                          console.error('Error updating application status:', error);
+                                          alert('Error updating application status');
+                                        }
+                                      }}
+                                      style={{
+                                        padding: '6px 12px',
+                                        borderRadius: 6,
+                                        border: '1px solid #e2e8f0',
+                                        fontSize: 14,
+                                        backgroundColor: '#fff',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      <option value="pending">Pending</option>
+                                      <option value="reviewed">Reviewed</option>
+                                      <option value="shortlisted">Shortlisted</option>
+                                      <option value="rejected">Rejected</option>
+                                      <option value="hired">Hired</option>
+                                    </select>
                                   </div>
                                   
                                   {/* Application Details */}

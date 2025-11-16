@@ -66,9 +66,20 @@ export default function Profile() {
       } catch {
         // ignore and fall back to localStorage
       }
+      // Fallback to localStorage but filter by user email
       const stored = localStorage.getItem('appliedJobs');
       if (stored) {
-        try { setAppliedJobs(JSON.parse(stored)); } catch { setAppliedJobs([]); }
+        try {
+          const allApplications = JSON.parse(stored);
+          const userEmail = JSON.parse(seeker || recruiter || '{}')?.email;
+          // Only show applications for the current user
+          const userApplications = userEmail 
+            ? allApplications.filter(app => app.seekerEmail === userEmail)
+            : allApplications;
+          setAppliedJobs(userApplications);
+        } catch {
+          setAppliedJobs([]);
+        }
       }
     };
     loadApplications();

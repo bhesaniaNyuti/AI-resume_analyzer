@@ -27,19 +27,61 @@ const JobDetails = () => {
     }
   }, [jobId, location.state]);
 
-  // Check if already applied for this job
+  // Check if already applied for this job (check from backend)
   useEffect(() => {
-    try {
-      const existing = JSON.parse(localStorage.getItem('appliedJobs') || '[]');
-      if (existing.some(j => j.id === jobId || j._id === jobId)) {
-        setApplied(true);
-        setApplyNotice('You have already applied for this job post.');
-      } else {
-        setApplyNotice('');
+    const checkApplicationStatus = async () => {
+      try {
+        // Get current user email from localStorage
+        const userData = localStorage.getItem('jobSeekerData');
+        if (!userData) {
+          setApplied(false);
+          return;
+        }
+        
+        const user = JSON.parse(userData);
+        const seekerEmail = user.email;
+        
+        if (!seekerEmail || !jobId) {
+          setApplied(false);
+          return;
+        }
+        
+        // Check backend if user has applied
+        const encodedEmail = encodeURIComponent(seekerEmail);
+        const response = await fetch(`http://localhost:5000/api/check-application/${jobId}/${encodedEmail}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.hasApplied) {
+            setApplied(true);
+            setApplyNotice('You have already applied for this job post.');
+          } else {
+            setApplied(false);
+            setApplyNotice('');
+          }
+        }
+      } catch (err) {
+        console.error('Error checking application status:', err);
+        // Fallback to localStorage check if backend check fails
+        try {
+          const existing = JSON.parse(localStorage.getItem('appliedJobs') || '[]');
+          const userData = localStorage.getItem('jobSeekerData');
+          if (userData) {
+            const user = JSON.parse(userData);
+            // Only check localStorage for this specific user's applications
+            const userApplications = existing.filter(app => app.seekerEmail === user.email);
+            if (userApplications.some(j => j.id === jobId || j._id === jobId)) {
+              setApplied(true);
+              setApplyNotice('You have already applied for this job post.');
+            }
+          }
+        } catch (_) {
+          // ignore parsing errors
+        }
       }
-    } catch (_) {
-      // ignore parsing errors
-    }
+    };
+    
+    checkApplicationStatus();
   }, [jobId]);
 
   const fetchJobDetails = async () => {
@@ -88,14 +130,22 @@ const JobDetails = () => {
 
       if (response.ok) {
         setApplied(true);
-        // Persist minimal application record locally to prevent re-applying
+        // Get current user email
+        const userData = localStorage.getItem('jobSeekerData');
+        const user = userData ? JSON.parse(userData) : null;
+        
+        // Persist minimal application record locally (user-specific)
         const existing = JSON.parse(localStorage.getItem('appliedJobs') || '[]');
-        if (!existing.some(j => j.id === jobId || j._id === jobId)) {
+        const applicationKey = `${jobId}_${user?.email || 'unknown'}`;
+        
+        if (!existing.some(j => (j.id === jobId || j._id === jobId) && j.seekerEmail === user?.email)) {
           existing.push({
             id: jobId,
+            _id: jobId,
             title: job?.title,
             company: job?.company,
             status: 'Pending',
+            seekerEmail: user?.email,
             createdAt: new Date().toISOString(),
           });
           localStorage.setItem('appliedJobs', JSON.stringify(existing));
@@ -105,6 +155,11 @@ const JobDetails = () => {
         setIsModalOpen(false);
       } else {
         const errorData = await response.json();
+        // Check if user has already applied
+        if (errorData.alreadyApplied) {
+          setApplied(true);
+          setApplyNotice('You have already applied for this job post.');
+        }
         throw new Error(errorData.error || 'Failed to apply');
       }
     } catch (err) {
