@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './JobSeekerDashboard.css';
 import { generateGreeting } from '../../utils/greetingGenerator';
@@ -15,7 +15,6 @@ const JobSeekerDashboard = () => {
   const [updatedResumeUrl, setUpdatedResumeUrl] = useState('');
   const [downloadUrls, setDownloadUrls] = useState({});
   const [sections, setSections] = useState({});
-  const [scoreBreakdown, setScoreBreakdown] = useState({});
   const [professionalismScore, setProfessionalismScore] = useState(null);
   const backendBaseUrl = 'http://127.0.0.1:8000';
   const [issues, setIssues] = useState([]);
@@ -221,7 +220,7 @@ const JobSeekerDashboard = () => {
         try {
           const errorData = await res.json();
           errorMessage = errorData.error || errorData.detail || errorMessage;
-        } catch (e) {
+        } catch {
           const errorText = await res.text();
           errorMessage = errorText || errorMessage;
         }
@@ -268,7 +267,7 @@ const JobSeekerDashboard = () => {
   };
 
   // Apply to job
-  const handleApply = async (job) => {
+  const _handleApply = async (job) => {
     setLoading(true);
     setError('');
     try {
@@ -451,7 +450,7 @@ const JobSeekerDashboard = () => {
             </div>
             
             {/* Debug information */}
-            {process.env.NODE_ENV === 'development' && (
+            {import.meta.env && import.meta.env.DEV && (
               <div style={{ background: '#f0f0f0', padding: '10px', margin: '10px 0', borderRadius: '5px' }}>
                 <strong>Debug Info:</strong><br/>
                 Download URLs: {JSON.stringify(downloadUrls)}<br/>
@@ -459,131 +458,133 @@ const JobSeekerDashboard = () => {
               </div>
             )}
 
-            {/* Download Section */}
-            <div className="download-section">
-              <h4>Download Enhanced Resume</h4>
-              {Object.keys(downloadUrls).length > 0 ? (
-                <div className="download-buttons">
-                  {downloadUrls.corrected_pdf && (
+            {/* Enhanced layout */}
+
+            <div className="enhanced-grid">
+              <div className="enhanced-left">
+                <h4>Download Enhanced Resume</h4>
+                {Object.keys(downloadUrls).length > 0 ? (
+                  <div className="download-buttons">
+                    {downloadUrls.corrected_pdf && (
+                      <a
+                        href={`${backendBaseUrl}${downloadUrls.corrected_pdf}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="download-btn corrected"
+                      >
+                        📄 Corrected PDF
+                      </a>
+                    )}
+                    {downloadUrls.professional_pdf && (
+                      <a
+                        href={`${backendBaseUrl}${downloadUrls.professional_pdf}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="download-btn professional"
+                      >
+                        ✨ Professional PDF
+                      </a>
+                    )}
+                    {downloadUrls.corrected_docx && !downloadUrls.corrected_pdf && (
+                      <a
+                        href={`${backendBaseUrl}${downloadUrls.corrected_docx}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="download-btn corrected"
+                      >
+                        📄 Corrected DOCX
+                      </a>
+                    )}
+                    {downloadUrls.professional_docx && !downloadUrls.professional_pdf && (
+                      <a
+                        href={`${backendBaseUrl}${downloadUrls.professional_docx}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="download-btn professional"
+                      >
+                        ✨ Professional DOCX
+                      </a>
+                    )}
+                    {downloadUrls.simple_txt && (
+                      <a
+                        href={`${backendBaseUrl}${downloadUrls.simple_txt}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="download-btn corrected"
+                      >
+                        📄 Analysis Report (TXT)
+                      </a>
+                    )}
+                  </div>
+                ) : updatedResumeUrl ? (
+                  <div className="download-buttons">
                     <a
-                      href={`${backendBaseUrl}${downloadUrls.corrected_pdf}`}
+                      href={updatedResumeUrl.startsWith('http') ? updatedResumeUrl : `${backendBaseUrl}${updatedResumeUrl}`}
                       target="_blank"
                       rel="noreferrer"
                       className="download-btn corrected"
                     >
-                      📄 Corrected PDF
+                      📄 Download Updated Resume
                     </a>
-                  )}
-                  {downloadUrls.professional_pdf && (
-                    <a
-                      href={`${backendBaseUrl}${downloadUrls.professional_pdf}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="download-btn professional"
-                    >
-                      ✨ Professional PDF
-                    </a>
-                  )}
-                  {downloadUrls.corrected_docx && !downloadUrls.corrected_pdf && (
-                    <a
-                      href={`${backendBaseUrl}${downloadUrls.corrected_docx}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="download-btn corrected"
-                    >
-                      📄 Corrected DOCX
-                    </a>
-                  )}
-                  {downloadUrls.professional_docx && !downloadUrls.professional_pdf && (
-                    <a
-                      href={`${backendBaseUrl}${downloadUrls.professional_docx}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="download-btn professional"
-                    >
-                      ✨ Professional DOCX
-                    </a>
-                  )}
-                  {downloadUrls.simple_txt && (
-                    <a
-                      href={`${backendBaseUrl}${downloadUrls.simple_txt}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="download-btn corrected"
-                    >
-                      📄 Analysis Report (TXT)
-                    </a>
-                  )}
-                </div>
-              ) : updatedResumeUrl ? (
-                <div className="download-buttons">
-                  <a
-                    href={updatedResumeUrl.startsWith('http') ? updatedResumeUrl : `${backendBaseUrl}${updatedResumeUrl}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="download-btn corrected"
-                  >
-                    📄 Download Updated Resume
-                  </a>
-                </div>
-              ) : (
-                <div className="no-downloads">
-                  <p>Resume processing in progress... Please wait a moment and refresh.</p>
-                </div>
-              )}
+                  </div>
+                ) : (
+                  <div className="no-preview">Resume processing in progress…</div>
+                )}
+              </div>
+              <div className="enhanced-right">
+                {Object.keys(sections).length > 0 && (
+                  <div className="sections-preview">
+                    <h4>Resume Sections Detected</h4>
+                    <div className="sections-grid">
+                      {sections.contact && Object.keys(sections.contact).length > 0 && (
+                        <div className="section-item">
+                          <span className="section-icon">📧</span>
+                          <span className="section-name">Contact Info</span>
+                        </div>
+                      )}
+                      {sections.summary && (
+                        <div className="section-item">
+                          <span className="section-icon">📝</span>
+                          <span className="section-name">Summary</span>
+                        </div>
+                      )}
+                      {sections.experience && sections.experience.length > 0 && (
+                        <div className="section-item">
+                          <span className="section-icon">💼</span>
+                          <span className="section-name">Experience ({sections.experience.length})</span>
+                        </div>
+                      )}
+                      {sections.education && sections.education.length > 0 && (
+                        <div className="section-item">
+                          <span className="section-icon">🎓</span>
+                          <span className="section-name">Education ({sections.education.length})</span>
+                        </div>
+                      )}
+                      {sections.skills && sections.skills.length > 0 && (
+                        <div className="section-item">
+                          <span className="section-icon">🛠️</span>
+                          <span className="section-name">Skills ({sections.skills.length})</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {issues.length > 0 && (
+                  <div className="suggestions-section">
+                    <h4>Improvement Suggestions</h4>
+                    <div className="suggestions-list">
+                      {issues.map((issue, idx) => (
+                        <div key={idx} className="suggestion-item">
+                          <span className="suggestion-icon">💡</span>
+                          <span className="suggestion-text">{issue}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-
-            {Object.keys(sections).length > 0 && (
-              <div className="sections-preview">
-                <h4>Resume Sections Detected</h4>
-                <div className="sections-grid">
-                  {sections.contact && Object.keys(sections.contact).length > 0 && (
-                    <div className="section-item">
-                      <span className="section-icon">📧</span>
-                      <span className="section-name">Contact Info</span>
-                    </div>
-                  )}
-                  {sections.summary && (
-                    <div className="section-item">
-                      <span className="section-icon">📝</span>
-                      <span className="section-name">Summary</span>
-                    </div>
-                  )}
-                  {sections.experience && sections.experience.length > 0 && (
-                    <div className="section-item">
-                      <span className="section-icon">💼</span>
-                      <span className="section-name">Experience ({sections.experience.length})</span>
-                    </div>
-                  )}
-                  {sections.education && sections.education.length > 0 && (
-                    <div className="section-item">
-                      <span className="section-icon">🎓</span>
-                      <span className="section-name">Education ({sections.education.length})</span>
-                    </div>
-                  )}
-                  {sections.skills && sections.skills.length > 0 && (
-                    <div className="section-item">
-                      <span className="section-icon">🛠️</span>
-                      <span className="section-name">Skills ({sections.skills.length})</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {issues.length > 0 && (
-              <div className="suggestions-section">
-                <h4>Improvement Suggestions</h4>
-                <div className="suggestions-list">
-                  {issues.map((issue, idx) => (
-                    <div key={idx} className="suggestion-item">
-                      <span className="suggestion-icon">💡</span>
-                      <span className="suggestion-text">{issue}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
         {error && <div className="error">{error}</div>}

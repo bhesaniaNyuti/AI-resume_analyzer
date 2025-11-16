@@ -335,156 +335,64 @@ async def analyze_resume(file: UploadFile = File(...)):
         name = sections.get('contact', {}).get('name', safe_base.replace('-', ' ').title())
         
         with open(html_file_path, 'w', encoding='utf-8') as f:
+            # Generic minimal professional template: section names + one-line summary
+            summary_text = sections.get('summary', '')
+            if isinstance(summary_text, list):
+                summary_text = ' '.join(summary_text)
+            summary_line = (summary_text or 'Professional candidate profile').strip().split('\n')[0][:160]
+            contact_items = []
+            contact = sections.get('contact', {}) or {}
+            for key in ('email', 'phone', 'linkedin'):
+                if contact.get(key):
+                    contact_items.append(contact[key])
+            contact_line = ' • '.join(contact_items)
+
+            exp_count = len(sections.get('experience', []) or [])
+            edu_count = len(sections.get('education', []) or [])
+            skills = sections.get('skills', []) or []
+            skills_line = ', '.join(skills[:8])
+
             f.write(f"""<!DOCTYPE html>
 <html>
 <head>
-    <title>Resume - {name}</title>
-    <meta charset="UTF-8">
-    <style>
-        @media print {{
-            body {{ margin: 0; }}
-            .no-print {{ display: none; }}
-        }}
-        body {{ 
-            font-family: 'Arial', sans-serif; 
-            margin: 40px; 
-            line-height: 1.6; 
-            color: #333; 
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }}
-        .header {{ 
-            text-align: center; 
-            margin-bottom: 30px; 
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 20px;
-        }}
-        .name {{ 
-            font-size: 28px; 
-            font-weight: bold; 
-            color: #2c3e50; 
-            margin-bottom: 10px; 
-            letter-spacing: 1px;
-        }}
-        .contact {{ 
-            font-size: 14px; 
-            color: #666; 
-            margin-bottom: 20px; 
-        }}
-        h2 {{ 
-            color: #34495e; 
-            border-bottom: 2px solid #3498db; 
-            padding-bottom: 5px; 
-            font-size: 16px; 
-            margin-top: 25px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }}
-        .section {{ 
-            margin: 20px 0; 
-        }}
-        .experience-item, .education-item {{ 
-            margin: 8px 0; 
-            padding-left: 10px;
-        }}
-        .skills {{ 
-            display: flex; 
-            flex-wrap: wrap; 
-            gap: 8px; 
-        }}
-        .skill {{ 
-            background-color: #ecf0f1; 
-            padding: 6px 12px; 
-            border-radius: 15px; 
-            font-size: 12px; 
-            color: #2c3e50;
-            border: 1px solid #bdc3c7;
-        }}
-        .summary {{
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-left: 4px solid #3498db;
-            margin: 15px 0;
-        }}
-        .footer {{
-            text-align: center;
-            font-size: 10px;
-            color: #7f8c8d;
-            margin-top: 30px;
-            border-top: 1px solid #ecf0f1;
-            padding-top: 10px;
-        }}
-    </style>
+  <meta charset="UTF-8" />
+  <title>Resume - {name}</title>
+  <style>
+    body {{ font-family: Arial, sans-serif; margin: 32px; color: #222; max-width: 820px; }}
+    .header {{ text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 12px; margin-bottom: 18px; }}
+    .name {{ font-size: 26px; font-weight: 700; letter-spacing: 0.8px; }}
+    .contact {{ font-size: 13px; color: #555; margin-top: 6px; }}
+    h2 {{ font-size: 15px; margin: 20px 0 8px; text-transform: uppercase; color: #34495e; }}
+    .line {{ font-size: 13px; color: #333; border-left: 4px solid #3498db; padding: 8px 12px; background: #f8f9fa; }}
+    .footer {{ text-align: center; font-size: 10px; color: #7f8c8d; margin-top: 18px; border-top: 1px solid #ecf0f1; padding-top: 8px; }}
+  </style>
 </head>
 <body>
-    <div class="header">
-        <div class="name">{name.upper()}</div>""")
-            
-            # Contact Information
-            if sections.get('contact'):
-                contact_info = []
-                if sections['contact'].get('email'):
-                    contact_info.append(sections['contact']['email'])
-                if sections['contact'].get('phone'):
-                    contact_info.append(sections['contact']['phone'])
-                if sections['contact'].get('linkedin'):
-                    contact_info.append(sections['contact']['linkedin'])
-                if sections['contact'].get('address'):
-                    contact_info.append(sections['contact']['address'])
-                
-                if contact_info:
-                    f.write(f'<div class="contact">{" • ".join(contact_info)}</div>')
-            
-            f.write('</div>')
-            
-            # Professional Summary
-            if sections.get('summary'):
-                f.write(f'<div class="section"><h2>PROFESSIONAL SUMMARY</h2><div class="summary"><p>{sections["summary"]}</p></div></div>')
-            
-            # Experience
-            if sections.get('experience'):
-                f.write('<div class="section"><h2>PROFESSIONAL EXPERIENCE</h2>')
-                for exp in sections['experience']:
-                    f.write(f'<div class="experience-item">• {exp}</div>')
-                f.write('</div>')
-            
-            # Education
-            if sections.get('education'):
-                f.write('<div class="section"><h2>EDUCATION</h2>')
-                for edu in sections['education']:
-                    f.write(f'<div class="education-item">• {edu}</div>')
-                f.write('</div>')
-            
-            # Skills
-            if sections.get('skills'):
-                f.write('<div class="section"><h2>TECHNICAL SKILLS</h2><div class="skills">')
-                for skill in sections['skills']:
-                    f.write(f'<span class="skill">{skill}</span>')
-                f.write('</div></div>')
-            
-            # Projects
-            if sections.get('projects'):
-                f.write('<div class="section"><h2>PROJECTS</h2>')
-                for project in sections['projects']:
-                    f.write(f'<div class="experience-item">• {project}</div>')
-                f.write('</div>')
-            
-            # Achievements
-            if sections.get('achievements'):
-                f.write('<div class="section"><h2>ACHIEVEMENTS</h2>')
-                for achievement in sections['achievements']:
-                    f.write(f'<div class="experience-item">• {achievement}</div>')
-                f.write('</div>')
-            
-            # Footer
-            f.write(f'<div class="footer">Generated by SGP Resume Analyzer - {datetime.now().strftime("%B %d, %Y")}</div>')
-            f.write('</body></html>')
+  <div class="header">
+    <div class="name">{name.upper()}</div>
+    {f'<div class="contact">{contact_line}</div>' if contact_line else ''}
+  </div>
+
+  <h2>Professional Overview</h2>
+  <div class="line">{summary_line}</div>
+
+  <h2>Experience</h2>
+  <div class="line">Items: {exp_count}</div>
+
+  <h2>Education</h2>
+  <div class="line">Items: {edu_count}</div>
+
+  <h2>Skills</h2>
+  <div class="line">{skills_line or '—'}</div>
+
+  <div class="footer">Generated by SGP Resume Analyzer</div>
+</body>
+</html>""")
         
         # Create both HTML and PDF versions
         public_urls["corrected_html"] = f"/uploads/{os.path.basename(html_file_path)}"
-        public_urls["corrected_pdf"] = f"/uploads/{os.path.basename(html_file_path)}"  # Same file, can be printed as PDF
-        public_urls["professional_pdf"] = f"/uploads/{os.path.basename(html_file_path)}"  # Same file, can be printed as PDF
+        public_urls["corrected_pdf"] = f"/uploads/{os.path.basename(html_file_path)}"
+        public_urls["professional_pdf"] = f"/uploads/{os.path.basename(html_file_path)}"
         print(f"Professional HTML resume created: {html_file_path}")
         
         # Clean up temp file

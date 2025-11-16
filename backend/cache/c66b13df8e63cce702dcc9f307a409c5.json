@@ -1,0 +1,57 @@
+{
+  "success": true,
+  "cached": false,
+  "score": 98,
+  "professionalism_score": {
+    "grammar": 18,
+    "structure": 20,
+    "readability": 4.125937031484258,
+    "keywords": 15,
+    "contact_info": 10,
+    "achievements": 3,
+    "formatting": 8,
+    "action_verbs": 5,
+    "quantification": 5
+  },
+  "analysis_details": {
+    "word_count": 364,
+    "sections_found": 5,
+    "has_email": true,
+    "has_phone": true,
+    "bullet_count": 0,
+    "achievement_count": 3
+  },
+  "issues": [
+    "Use bullet points to highlight achievements and responsibilities.",
+    "Fix capitalization and sentence punctuation in 2 places.",
+    "Simplify sentences to improve readability (aim for 60+ Flesch score).",
+    "Add more detailed work experience with specific achievements.",
+    "Expand your skills section with relevant technical and soft skills."
+  ],
+  "sections": {
+    "contact": {
+      "email": "shreya29036@gmail.com",
+      "phone": "8488990738",
+      "linkedin": "linkedin.com/in/shreya-bhavani-922023280"
+    },
+    "summary": "I am a passionate third-year BTech IT student interested in Data Science and proficient in languages like C, Python, and C++ . Actively engaged in solving problems on platforms like LeetCode and HackerRank, I aim to contribute to impactful projects through an internship while further developing my skills. PROFESSIONAL EXPERIENCE Python Programming Intern Completed a remote Python Programming Internship at CodSoft, where I built foundational programming skills. Worked on projects like a Calculator, Rock-Paper-Scissors game, and Number Guessing Game using core Python concepts. Gained hands-on experience in writing clean code, implementing logic, and building interactive console-based applications. EDUCATION Bachelor's Degree - IT Charotar University Of Science And Technology Higher Secondary (12th) - Science Ashadeep IIT , GSEB SKILLS 04/2025 \u2013 05/2025 Remote 06/2023 \u2013 present 06/2021 \u2013 03/2023 C/C++ , Python, CSS, HTML, React, MERN, MongoDB. ,Node.js, GitHub, MySQL, JavaScript LANGUAGES English , Hindi , Gujarati AWARDS Silver medal in NPTEL Earned Silver Certification in Data Structures and Algorithms and ranked in the Top 5% of exam takers CERTIFICATES 2024 Data Structures and Algorithms - Silver Medal Top 5% - NPTEL PROJECTS Mentor Connect Database Management System - Elite - NPTEL problem Solving in C - Certified - NPTEL 02/2025 \u2013 03/2025 Developed a website that connects mentees with experts for personalized mentorship sessions. Designed and implemented a user-friendly frontend using React.js for seamless navigation and scheduling. Integrated Calendly API to automate appointment scheduling between mentees and experts. Utilized MongoDB for efficient data storage and retrieval of user profiles, session details, and feedback. Ensured a responsive and interactive UI for an enhanced user experience. Spotify Clone A project that aims to recreate Spotify's interface to enhance design skills. Created a frontend replica of Spotify's user interface using HTML and CSS. Designed responsive and visually appealing UI with interactive hover effects. Focused on improving frontend design skills and understanding of modern UI layouts 10/2024 EXTRA-CURICULAR ACTIVITY Volunteering Recognized for a 10-day Volunteer Service in the College\u2019s 1st-Year Student Commencement Program,contributing to the successful organization and execution of the event while fostering a welcoming environment for new students. Volunteer at Hackathon\u2013 Odoo x CHARUSAT Hackathon \u201925",
+    "experience": [
+      "Python Programming Intern Completed a remote Python Programming Internship at CodSoft, where I built foundational programming"
+    ],
+    "education": [
+      "Bachelor's Degree - IT Charotar University Of Science And Technology Higher Secondary (12th) - Science Ashadeep IIT , GSEB"
+    ],
+    "skills": [
+      ". PROFESSIONAL"
+    ],
+    "projects": [],
+    "achievements": []
+  },
+  "download_urls": {
+    "corrected_html": "/uploads/resume-SHREYA-BHAVANI-FlowCV-Resume-20250726 (1).html",
+    "corrected_pdf": "/uploads/resume-SHREYA-BHAVANI-FlowCV-Resume-20250726 (1).html",
+    "professional_pdf": "/uploads/resume-SHREYA-BHAVANI-FlowCV-Resume-20250726 (1).html"
+  },
+  "updated_resume_url": "/uploads/resume-SHREYA-BHAVANI-FlowCV-Resume-20250726 (1).html",
+  "message": "Resume analyzed successfully!"
+}

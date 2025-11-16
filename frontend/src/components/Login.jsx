@@ -28,14 +28,30 @@ export default function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        // Login successful - store user data
         if (role === 'recruiter') {
           localStorage.setItem('recruiterId', data.recruiter.id);
-          localStorage.setItem('recruiterData', JSON.stringify(data.recruiter));
+          try {
+            const fullRes = await fetch(`http://localhost:5000/api/recruiter/by-email/${encodeURIComponent(data.recruiter.email)}`);
+            const full = await fullRes.json();
+            if (fullRes.ok) {
+              localStorage.setItem('recruiterData', JSON.stringify(full));
+            } else {
+              localStorage.setItem('recruiterData', JSON.stringify(data.recruiter));
+            }
+          } catch {
+            localStorage.setItem('recruiterData', JSON.stringify(data.recruiter));
+          }
           navigate('/recruiter-dashboard');
         } else {
           localStorage.setItem('jobSeekerId', data.user.id);
-          localStorage.setItem('jobSeekerData', JSON.stringify(data.user));
+          try {
+            const existingRaw = localStorage.getItem('jobSeekerData');
+            const existing = existingRaw ? JSON.parse(existingRaw) : {};
+            const merged = { ...existing, ...data.user };
+            localStorage.setItem('jobSeekerData', JSON.stringify(merged));
+          } catch {
+            localStorage.setItem('jobSeekerData', JSON.stringify(data.user));
+          }
           navigate('/jobseeker-dashboard');
         }
       } else {
@@ -43,7 +59,7 @@ export default function Login() {
         setError(data.error || 'Login failed');
         alert(data.error || 'Password or username is incorrect');
       }
-    } catch (err) {
+    } catch {
       setError('Network error. Please try again.');
       alert('Network error. Please try again.');
     } finally {
@@ -106,4 +122,4 @@ export default function Login() {
       </div>
     </div>
   );
-} 
+}

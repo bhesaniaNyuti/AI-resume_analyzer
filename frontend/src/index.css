@@ -6,6 +6,11 @@ body, html, #root {
   color: #1a2233;
 }
 
+[data-theme="dark"] body, [data-theme="dark"] html, [data-theme="dark"] #root {
+  background: #0b1220;
+  color: #e5e7eb;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -51,3 +56,6 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+[data-theme="dark"] a { color: #93c5fd; }
+[data-theme="dark"] button { background-color: #1f2937; color: #e5e7eb; border-color: #374151; }
